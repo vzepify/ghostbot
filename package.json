@@ -11,6 +11,5 @@
     "express-session": "^1.17.3",
     "node-fetch": "2.7.0",
     "tmi.js": "^1.8.5"
-    "session-file-store": "^1.5.0"
   }
 }
