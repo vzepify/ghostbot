@@ -5,19 +5,18 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const session = require("express-session");
-const FileStore = require("session-file-store")(session);
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.use(session({
-  store: new FileStore({ path: "./sessions", ttl: 2592000 }),
   secret: process.env.SESSION_SECRET || "changeme-local-secret",
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false, maxAge: 2592000000 }
+  cookie: { secure: false }
 }));
+
 // ── Data store (JSON file, simple & free) ───────────────────
 const DB_FILE = "./data.json";
 
