@@ -12,10 +12,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.use(session({
+  store: new FileStore({ path: "./sessions", ttl: 2592000 }),
   secret: process.env.SESSION_SECRET || "changeme-local-secret",
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false }
+  cookie: { secure: false, maxAge: 2592000000 }
+}));
 }));
 
 // ── Data store (JSON file, simple & free) ───────────────────
