@@ -34,6 +34,8 @@ function saveDB(db) {
 }
 
 // ── tmi.js multi-channel bot ─────────────────────────────────
+const joinedChannels = new Set();
+
 const client = new tmi.Client({
   identity: {
     username: process.env.BOT_USERNAME,
@@ -44,7 +46,6 @@ const client = new tmi.Client({
 
 client.connect().then(() => {
   console.log("✅ Bot connected to Twitch IRC");
-  // Join all stored channels on startup
   const db = loadDB();
   Object.values(db.users).forEach(user => {
     if (user.active) joinChannel(user.login);
@@ -52,8 +53,10 @@ client.connect().then(() => {
 }).catch(console.error);
 
 function joinChannel(login) {
+  if (joinedChannels.has(login)) return;
   try {
     client.join(login);
+    joinedChannels.add(login);
     console.log(`➕ Joined #${login}`);
   } catch (e) {}
 }
@@ -61,6 +64,7 @@ function joinChannel(login) {
 function leaveChannel(login) {
   try {
     client.part(login);
+    joinedChannels.delete(login);
     console.log(`➖ Left #${login}`);
   } catch (e) {}
 }
@@ -115,7 +119,6 @@ async function getValidToken(userId) {
   const db = loadDB();
   const user = db.users[userId];
   if (!user) throw new Error("User not found");
-  // Try existing token, refresh if needed
   try {
     const test = await helixGet(`/users?id=${userId}`, user.accessToken);
     if (test.data) return user.accessToken;
@@ -138,16 +141,14 @@ client.on("message", async (channel, tags, message, self) => {
   const command = cmd.toLowerCase();
   const say = (text) => client.say(channel, text);
 
-  // Find this channel's user record
   const db = loadDB();
   const user = Object.values(db.users).find(u => u.login === channelName);
   if (!user) return;
 
   try {
-    // ── Built-in commands ──────────────────────────────────
     if (command === "!commands") {
       const customCmds = (user.commands || []).filter(c => c.enabled !== false).map(c => c.command);
-      const builtIn = ["!title", "!game", "!uptime", "!shoutout"];
+      const builtIn = ["!title", "!game", "!uptime", "!shoutout", "!discord"];
       say(`📋 Commands: ${[...builtIn, ...customCmds].join(" | ")}`);
       return;
     }
@@ -162,8 +163,12 @@ client.on("message", async (channel, tags, message, self) => {
       return;
     }
 
+    if (command === "!discord") {
+      say("Join our Discord at https://discord.gg/8mkx5GdF");
+      return;
+    }
+
     if (!isPrivileged(tags)) {
-      // Check custom commands for everyone
       const match = (user.commands || []).find(c => c.command === command && c.enabled !== false && c.permission === "everyone");
       if (match) say(match.response);
       return;
@@ -194,17 +199,11 @@ client.on("message", async (channel, tags, message, self) => {
       const token = await getValidToken(user.id);
       const userData = await helixGet(`/users?login=${target}`, token);
       const targetUser = userData.data?.[0];
-      
       if (!targetUser) { say(`❌ Couldn't find user "${target}".`); return; }
       const chanData = await helixGet(`/channels?broadcaster_id=${targetUser.id}`, token);
       const lastGame = chanData.data?.[0]?.game_name;
       say(`🎉 Go check out ${targetUser.display_name}!${lastGame ? ` They were last playing ${lastGame}.` : ""} Follow them at https://twitch.tv/${targetUser.login}`);
       return;
-
-      if (command === "!discord") {
-  say("Join our Discord at https://discord.gg/8mkx5GdF");
-  return;
-}
     }
 
     // ── Custom commands (mods+) ────────────────────────────
@@ -245,7 +244,6 @@ app.get("/auth/callback", async (req, res) => {
   }
 
   try {
-    // Exchange code for tokens
     const tokenRes = await fetch("https://id.twitch.tv/oauth2/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -260,12 +258,10 @@ app.get("/auth/callback", async (req, res) => {
     const tokens = await tokenRes.json();
     if (!tokens.access_token) throw new Error("No access token");
 
-    // Get user info
     const userRes = await helixGet("/users", tokens.access_token);
     const twitchUser = userRes.data?.[0];
     if (!twitchUser) throw new Error("No user data");
 
-    // Save to DB
     const db = loadDB();
     const isNew = !db.users[twitchUser.id];
     db.users[twitchUser.id] = {
@@ -282,7 +278,6 @@ app.get("/auth/callback", async (req, res) => {
     saveDB(db);
 
     req.session.userId = twitchUser.id;
-
     if (isNew) joinChannel(twitchUser.login);
 
     res.redirect("/dashboard");
@@ -337,7 +332,6 @@ app.post("/api/activate", requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
-// ── Serve frontend ───────────────────────────────────────────
 app.get("/dashboard", (req, res) => {
   if (!req.session.userId) return res.redirect("/");
   res.sendFile(path.join(__dirname, "public", "dashboard.html"));
