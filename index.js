@@ -192,11 +192,17 @@ client.on("message", async (channel, tags, message, self) => {
       const token = await getValidToken(user.id);
       const userData = await helixGet(`/users?login=${target}`, token);
       const targetUser = userData.data?.[0];
+      
       if (!targetUser) { say(`❌ Couldn't find user "${target}".`); return; }
       const chanData = await helixGet(`/channels?broadcaster_id=${targetUser.id}`, token);
       const lastGame = chanData.data?.[0]?.game_name;
       say(`🎉 Go check out ${targetUser.display_name}!${lastGame ? ` They were last playing ${lastGame}.` : ""} Follow them at https://twitch.tv/${targetUser.login}`);
       return;
+
+      if (command === "!discord") {
+  say("Join our Discord at https://discord.gg/8mkx5GdF");
+  return;
+}
     }
 
     // ── Custom commands (mods+) ────────────────────────────
