@@ -5,6 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const session = require("express-session");
+const FileStore = require("session-file-store")(session);
 
 const app = express();
 app.use(express.json());
