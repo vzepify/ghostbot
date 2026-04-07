@@ -18,7 +18,6 @@ app.use(session({
   saveUninitialized: false,
   cookie: { secure: false, maxAge: 2592000000 }
 }));
-}));
 
 // ── Data store (JSON file, simple & free) ───────────────────
 const DB_FILE = "./data.json";
