@@ -342,6 +342,7 @@ app.post("/api/activate", requireAuth, (req, res) => {
 });
 
 // ── Serve frontend ───────────────────────────────────────────
+// ── Serve frontend ───────────────────────────────────────────
 app.get("/", (req, res, next) => {
   if (req.session.userId) return res.redirect("/dashboard");
   next();
