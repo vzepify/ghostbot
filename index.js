@@ -9,13 +9,24 @@ const session = require("express-session");
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(require("cookie-parser")());
 app.use(express.static("public"));
 app.use(session({
   secret: process.env.SESSION_SECRET || "changeme-local-secret",
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false }
 }));
+
+// Restore session from persistent cookie if session expired
+app.use((req, res, next) => {
+  if (!req.session.userId && req.cookies?.botUserId) {
+    const db = loadDB();
+    if (db.users[req.cookies.botUserId]) {
+      req.session.userId = req.cookies.botUserId;
+    }
+  }
+  next();
+});
 
 // ── Data store (JSON file, simple & free) ───────────────────
 const DB_FILE = "./data.json";
