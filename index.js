@@ -288,7 +288,8 @@ app.get("/auth/callback", async (req, res) => {
 
     if (isNew) joinChannel(twitchUser.login);
 
-    res.redirect("/dashboard");
+    res.cookie("botUserId", twitchUser.id, { maxAge: 1000 * 60 * 60 * 24 * 30, httpOnly: true });
+res.redirect("/dashboard");  
   } catch (err) {
     console.error("Auth error:", err);
     res.redirect("/?error=auth_failed");
