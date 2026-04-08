@@ -8,7 +8,7 @@
 <style>
   :root {
     --bg: #0d0d0f; --surface: #141416; --surface2: #1c1c20;
-    --border: #2a2a30; --accent: #4FC3F7; --accent2: #FFEE58;
+    --border: #2a2a30; --accent: #9f6ef5; --accent2: #f56ef5;
     --green: #6ef5a0; --red: #f56e6e; --text: #e8e8f0; --muted: #6a6a7a;
     --mono: 'JetBrains Mono', monospace; --sans: 'Syne', sans-serif;
   }
@@ -113,6 +113,35 @@
   .save-dot.dirty { background: #f5a56e; }
 
   @keyframes fadeDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+  @media (max-width: 600px) {
+    nav { padding: 0 16px; }
+    .username { display: none; }
+    .container { padding: 20px 12px 60px; }
+
+    .status-card { flex-direction: column; align-items: flex-start; gap: 14px; }
+    .status-card .btn { width: 100%; text-align: center; }
+
+    .commands-ref { grid-template-columns: 1fr 1fr; }
+
+    .save-bar { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .save-bar .btn { width: 100%; text-align: center; }
+
+    .form-row { grid-template-columns: 1fr 1fr; }
+    .form-row .field:nth-child(2) { grid-column: 1 / -1; }
+    .btn-add { width: 100%; grid-column: 1 / -1; }
+
+    .card-main { grid-template-columns: 1fr auto; }
+    .card-cell { padding: 10px 12px; }
+    .card-cell:nth-child(2) { display: none; }
+    .card-cell:nth-child(3) { display: none; }
+
+    .card-edit { grid-template-columns: 1fr; }
+    .edit-fields { grid-template-columns: 1fr; }
+    .card-edit .btn { width: 100%; }
+
+    input, select { font-size: 16px; }
+  }
 </style>
 </head>
 <body>
