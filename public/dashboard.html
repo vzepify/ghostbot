@@ -260,6 +260,25 @@
       document.getElementById('channelSwitcher').style.display = 'flex';
     }
 
+    // Silently refresh modded channels in background
+    fetch('/api/refresh-channels', { method: 'POST' })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.moddedChannels) return;
+        const updated = [
+          { id: userData.id, login: userData.login, displayName: userData.displayName, profileImage: userData.profileImage, role: 'broadcaster' },
+          ...data.moddedChannels.map(c => ({ id: c.id, login: c.login, displayName: c.displayName, profileImage: null, role: 'mod' }))
+        ];
+        userData.channels = updated;
+        if (updated.length > 1) {
+          const select = document.getElementById('channelSelect');
+          select.innerHTML = updated.map(c =>
+            `<option value="${c.id}" data-role="${c.role}">${c.displayName} (${c.role === 'broadcaster' ? 'Your channel' : 'Mod'})</option>`
+          ).join('');
+          document.getElementById('channelSwitcher').style.display = 'flex';
+        }
+      }).catch(() => {});
+
     selectedChannelId = userData.id;
     selectedChannelRole = 'broadcaster';
     updateRoleBadge();
