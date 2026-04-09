@@ -1,3 +1,15 @@
+<p align="center">
+  <img src="https://ibb.co/6c6K24kw" width="300" alt="Logo">
+</p>
+
+
+
+
+
+
+
+
+
 MULTI-USE twitch bot that i made for ur friends or anyone who would like to use it.
 
 it has a dashboard.
