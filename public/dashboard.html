@@ -138,6 +138,15 @@
   .toast.show { transform: translateX(-50%) translateY(0); }
 
 
+  .kofi-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #ff5e5b; color: #fff; font-family: var(--sans);
+    font-weight: 700; font-size: 12px; padding: 6px 14px;
+    border-radius: 7px; text-decoration: none; transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .kofi-btn:hover { background: #ff7875; transform: translateY(-1px); }
+
   /* Profile menu */
   .profile-menu-wrap { position: relative; }
   .profile-btn {
@@ -210,6 +219,7 @@
 <nav>
   <div class="nav-brand"><span>⚡</span> NeoBot</div>
   <div class="nav-right">
+    <a href="https://ko-fi.com/neobotxyz" target="_blank" class="kofi-btn">☕ Support</a>
     <div class="profile-menu-wrap" id="profileMenuWrap">
       <button class="profile-btn" id="profileBtn" onclick="toggleProfileMenu()">
         <img class="avatar" id="navAvatar" src="" alt="">
