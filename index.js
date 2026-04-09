@@ -312,6 +312,21 @@ function requireAuth(req, res, next) {
   next();
 }
 
+// Refresh modded channels for current user
+app.post("/api/refresh-channels", requireAuth, async (req, res) => {
+  try {
+    const db = loadDB();
+    const user = db.users[req.session.userId];
+    if (!user) return res.status(404).json({ error: "Not found" });
+    const token = await getValidToken(req.session.userId);
+    const moddedChannels = await fetchModdedChannels(req.session.userId, token);
+    db.users[req.session.userId].moddedChannels = moddedChannels;
+    saveDB(db);
+    res.json({ moddedChannels });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to refresh" });
+  }
+});
 // Get current user info + list of channels they can manage
 app.get("/api/me", requireAuth, (req, res) => {
   const db = loadDB();
