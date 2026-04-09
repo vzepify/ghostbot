@@ -1,3 +1,13 @@
+MULTI-USE twitch bot that i made for ur friends or anyone who would like to use it.
+
+it has a dashboard.
+cool colors
+add/edit commands
+if ur a mod u can add commands
+for ur streamer.
+
+more to come.
+
 to use this bot go to 
 https://Neobotxyz.up.railway.app
 
