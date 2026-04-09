@@ -138,13 +138,14 @@ function isPrivileged(tags) { return isBroadcaster(tags) || isMod(tags); }
 function canEditChannel(requestingUserId, targetChannelId) {
   const db = loadDB();
   const targetUser = db.users[targetChannelId];
+  console.log(`canEdit check: requester=${requestingUserId} target=${targetChannelId} targetExists=${!!targetUser}`);
   if (!targetUser) return false;
-  // Is the requester the broadcaster?
   if (requestingUserId === targetChannelId) return true;
-  // Is the requester a mod of that channel?
   const requester = db.users[requestingUserId];
   if (!requester) return false;
-  return (requester.moddedChannels || []).some(c => c.id === targetChannelId);
+  const moddedIds = (requester.moddedChannels || []).map(c => c.id);
+  console.log(`moddedChannels for requester:`, moddedIds);
+  return moddedIds.includes(targetChannelId);
 }
 
 // ── Chat message handler ─────────────────────────────────────
