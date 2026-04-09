@@ -121,7 +121,7 @@ async function startBot() {
   } catch (err) {
     console.error("❌ Bot IRC connection failed:", err.message);
   }
-
+}
 function joinChannel(login) {
   if (joinedChannels.has(login)) return;
   try { client.join(login); joinedChannels.add(login); console.log(`➕ Joined #${login}`); } catch (e) {}
