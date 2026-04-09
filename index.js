@@ -113,11 +113,14 @@ const client = new tmi.Client({
 
 async function startBot() {
   await initDB();
-  await client.connect();
-  console.log("✅ Bot connected to Twitch IRC");
-  const users = await getAllActiveUsers();
-  users.forEach(u => joinChannel(u.login));
-}
+  try {
+    await client.connect();
+    console.log("✅ Bot connected to Twitch IRC");
+    const users = await getAllActiveUsers();
+    users.forEach(u => joinChannel(u.login));
+  } catch (err) {
+    console.error("❌ Bot IRC connection failed:", err.message);
+  }
 
 function joinChannel(login) {
   if (joinedChannels.has(login)) return;
@@ -440,4 +443,7 @@ app.get("/dashboard", (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🌐 Server running on port ${PORT}`));
 
-startBot().catch(console.error);
+startBot().catch(err => {
+  console.error("Failed to start bot:", err.message);
+  // Keep the web server running even if bot fails
+});
