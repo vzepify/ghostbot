@@ -1,11 +1,84 @@
 const express = require("express");
 const fetch = require("node-fetch");
 const tmi = require("tmi.js");
-const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const session = require("express-session");
+const { Pool } = require("pg");
 
+// ── Database ─────────────────────────────────────────────────
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
+
+async function initDB() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      login TEXT NOT NULL,
+      display_name TEXT,
+      profile_image TEXT,
+      access_token TEXT,
+      refresh_token TEXT,
+      active BOOLEAN DEFAULT true,
+      commands JSONB DEFAULT '[]',
+      modded_channels JSONB DEFAULT '[]',
+      joined_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+  console.log("✅ Database ready");
+}
+
+async function getUser(id) {
+  const res = await pool.query("SELECT * FROM users WHERE id = $1", [id]);
+  return res.rows[0] || null;
+}
+
+async function getAllActiveUsers() {
+  const res = await pool.query("SELECT * FROM users WHERE active = true");
+  return res.rows;
+}
+
+async function upsertUser(user) {
+  await pool.query(`
+    INSERT INTO users (id, login, display_name, profile_image, access_token, refresh_token, active, commands, modded_channels, joined_at)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, COALESCE((SELECT joined_at FROM users WHERE id = $1), NOW()))
+    ON CONFLICT (id) DO UPDATE SET
+      login = $2, display_name = $3, profile_image = $4,
+      access_token = $5, refresh_token = $6, active = $7,
+      commands = $8, modded_channels = $9
+  `, [
+    user.id, user.login, user.display_name || user.displayName,
+    user.profile_image || user.profileImage,
+    user.access_token || user.accessToken,
+    user.refresh_token || user.refreshToken,
+    user.active !== false,
+    JSON.stringify(user.commands || []),
+    JSON.stringify(user.modded_channels || user.moddedChannels || []),
+  ]);
+}
+
+async function updateTokens(id, accessToken, refreshToken) {
+  await pool.query(
+    "UPDATE users SET access_token = $1, refresh_token = $2 WHERE id = $3",
+    [accessToken, refreshToken, id]
+  );
+}
+
+async function updateCommands(id, commands) {
+  await pool.query("UPDATE users SET commands = $2 WHERE id = $1", [id, JSON.stringify(commands)]);
+}
+
+async function updateModdedChannels(id, moddedChannels) {
+  await pool.query("UPDATE users SET modded_channels = $2 WHERE id = $1", [id, JSON.stringify(moddedChannels)]);
+}
+
+async function setActive(id, active) {
+  await pool.query("UPDATE users SET active = $2 WHERE id = $1", [id, active]);
+}
+
+// ── Express setup ────────────────────────────────────────────
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -16,32 +89,16 @@ app.use(session({
   saveUninitialized: false,
 }));
 
-// Restore session from persistent cookie if session expired
-app.use((req, res, next) => {
+// Restore session from persistent cookie
+app.use(async (req, res, next) => {
   if (!req.session.userId && req.cookies?.botUserId) {
-    const db = loadDB();
-    if (db.users[req.cookies.botUserId]) {
-      req.session.userId = req.cookies.botUserId;
-    }
+    const user = await getUser(req.cookies.botUserId).catch(() => null);
+    if (user) req.session.userId = user.id;
   }
   next();
 });
 
 app.use(express.static("public"));
-
-// ── Data store ───────────────────────────────────────────────
-const DB_FILE = "./data.json";
-
-function loadDB() {
-  try {
-    if (fs.existsSync(DB_FILE)) return JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
-  } catch (e) {}
-  return { users: {} };
-}
-
-function saveDB(db) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
-}
 
 // ── tmi.js ───────────────────────────────────────────────────
 const joinedChannels = new Set();
@@ -54,13 +111,13 @@ const client = new tmi.Client({
   channels: [],
 });
 
-client.connect().then(() => {
+async function startBot() {
+  await initDB();
+  await client.connect();
   console.log("✅ Bot connected to Twitch IRC");
-  const db = loadDB();
-  Object.values(db.users).forEach(user => {
-    if (user.active) joinChannel(user.login);
-  });
-}).catch(console.error);
+  const users = await getAllActiveUsers();
+  users.forEach(u => joinChannel(u.login));
+}
 
 function joinChannel(login) {
   if (joinedChannels.has(login)) return;
@@ -96,32 +153,27 @@ async function refreshUserToken(user) {
       client_id: process.env.TWITCH_CLIENT_ID,
       client_secret: process.env.TWITCH_CLIENT_SECRET,
       grant_type: "refresh_token",
-      refresh_token: user.refreshToken,
+      refresh_token: user.refresh_token,
     }),
   });
   const data = await res.json();
   if (data.access_token) {
-    const db = loadDB();
-    db.users[user.id].accessToken = data.access_token;
-    db.users[user.id].refreshToken = data.refresh_token || user.refreshToken;
-    saveDB(db);
+    await updateTokens(user.id, data.access_token, data.refresh_token || user.refresh_token);
     return data.access_token;
   }
   throw new Error("Token refresh failed");
 }
 
 async function getValidToken(userId) {
-  const db = loadDB();
-  const user = db.users[userId];
+  const user = await getUser(userId);
   if (!user) throw new Error("User not found");
   try {
-    const test = await helixGet(`/users?id=${userId}`, user.accessToken);
-    if (test.data) return user.accessToken;
+    const test = await helixGet(`/users?id=${userId}`, user.access_token);
+    if (test.data) return user.access_token;
   } catch (e) {}
   return refreshUserToken(user);
 }
 
-// Fetch channels a user moderates
 async function fetchModdedChannels(userId, token) {
   try {
     const data = await helixGet(`/moderation/channels?user_id=${userId}&first=100`, token);
@@ -134,18 +186,14 @@ function isBroadcaster(tags) { return !!tags.badges?.broadcaster; }
 function isMod(tags) { return tags.mod || isBroadcaster(tags); }
 function isPrivileged(tags) { return isBroadcaster(tags) || isMod(tags); }
 
-// Check if a userId is a mod or broadcaster of a channelId
-function canEditChannel(requestingUserId, targetChannelId) {
-  const db = loadDB();
-  const targetUser = db.users[targetChannelId];
-  console.log(`canEdit check: requester=${requestingUserId} target=${targetChannelId} targetExists=${!!targetUser}`);
-  if (!targetUser) return false;
+async function canEditChannel(requestingUserId, targetChannelId) {
   if (requestingUserId === targetChannelId) return true;
-  const requester = db.users[requestingUserId];
+  const requester = await getUser(requestingUserId);
   if (!requester) return false;
-  const moddedIds = (requester.moddedChannels || []).map(c => c.id);
-  console.log(`moddedChannels for requester:`, moddedIds);
-  return moddedIds.includes(targetChannelId);
+  const target = await getUser(targetChannelId);
+  if (!target) return false;
+  const modded = requester.modded_channels || [];
+  return modded.some(c => c.id === targetChannelId);
 }
 
 // ── Chat message handler ─────────────────────────────────────
@@ -158,8 +206,8 @@ client.on("message", async (channel, tags, message, self) => {
   const command = cmd.toLowerCase();
   const say = (text) => client.say(channel, text);
 
-  const db = loadDB();
-  const user = Object.values(db.users).find(u => u.login === channelName);
+  const res = await pool.query("SELECT * FROM users WHERE login = $1", [channelName]);
+  const user = res.rows[0];
   if (!user) return;
 
   try {
@@ -271,27 +319,23 @@ app.get("/auth/callback", async (req, res) => {
     const twitchUser = userRes.data?.[0];
     if (!twitchUser) throw new Error("No user data");
 
-    // Fetch channels this user mods for
     const moddedChannels = await fetchModdedChannels(twitchUser.id, tokens.access_token);
+    const existing = await getUser(twitchUser.id);
 
-    const db = loadDB();
-    const isNew = !db.users[twitchUser.id];
-    db.users[twitchUser.id] = {
+    await upsertUser({
       id: twitchUser.id,
       login: twitchUser.login,
-      displayName: twitchUser.display_name,
-      profileImage: twitchUser.profile_image_url,
-      accessToken: tokens.access_token,
-      refreshToken: tokens.refresh_token,
+      display_name: twitchUser.display_name,
+      profile_image: twitchUser.profile_image_url,
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
       active: true,
-      commands: db.users[twitchUser.id]?.commands || [],
-      moddedChannels,
-      joinedAt: db.users[twitchUser.id]?.joinedAt || new Date().toISOString(),
-    };
-    saveDB(db);
+      commands: existing?.commands || [],
+      modded_channels: moddedChannels,
+    });
 
     req.session.userId = twitchUser.id;
-    if (isNew) joinChannel(twitchUser.login);
+    if (!existing) joinChannel(twitchUser.login);
 
     res.cookie("botUserId", twitchUser.id, { maxAge: 1000 * 60 * 60 * 24 * 30, httpOnly: true });
     res.redirect("/dashboard");
@@ -313,82 +357,72 @@ function requireAuth(req, res, next) {
   next();
 }
 
-// Refresh modded channels for current user
 app.post("/api/refresh-channels", requireAuth, async (req, res) => {
   try {
-    const db = loadDB();
-    const user = db.users[req.session.userId];
-    if (!user) return res.status(404).json({ error: "Not found" });
     const token = await getValidToken(req.session.userId);
     const moddedChannels = await fetchModdedChannels(req.session.userId, token);
-    db.users[req.session.userId].moddedChannels = moddedChannels;
-    saveDB(db);
+    await updateModdedChannels(req.session.userId, moddedChannels);
     res.json({ moddedChannels });
   } catch (err) {
     res.status(500).json({ error: "Failed to refresh" });
   }
 });
-// Get current user info + list of channels they can manage
-app.get("/api/me", requireAuth, (req, res) => {
-  const db = loadDB();
-  const user = db.users[req.session.userId];
+
+app.get("/api/me", requireAuth, async (req, res) => {
+  const user = await getUser(req.session.userId);
   if (!user) return res.status(404).json({ error: "User not found" });
 
-  // Build list of channels they can manage (own + modded that have authorized)
-  const manageable = [
-    { id: user.id, login: user.login, displayName: user.displayName, profileImage: user.profileImage, role: "broadcaster" },
-    ...(user.moddedChannels || [])
-      .filter(c => db.users[c.id]) // only show if that channel has authorized the bot
-      .map(c => ({ id: c.id, login: c.login, displayName: c.displayName, profileImage: null, role: "mod" }))
+  const modded = user.modded_channels || [];
+  const authorizedModded = [];
+  for (const c of modded) {
+    const exists = await getUser(c.id);
+    if (exists) authorizedModded.push(c);
+  }
+
+  const channels = [
+    { id: user.id, login: user.login, displayName: user.display_name, profileImage: user.profile_image, role: "broadcaster" },
+    ...authorizedModded.map(c => ({ id: c.id, login: c.login, displayName: c.displayName, profileImage: null, role: "mod" }))
   ];
 
   res.json({
-    id: user.id, login: user.login, displayName: user.displayName,
-    profileImage: user.profileImage, active: user.active,
-    joinedAt: user.joinedAt, channels: manageable,
+    id: user.id, login: user.login, displayName: user.display_name,
+    profileImage: user.profile_image, active: user.active,
+    joinedAt: user.joined_at, channels,
   });
 });
 
-// Get commands for a specific channel
-app.get("/api/commands/:channelId", requireAuth, (req, res) => {
+app.get("/api/commands/:channelId", requireAuth, async (req, res) => {
   const { channelId } = req.params;
-  if (!canEditChannel(req.session.userId, channelId)) {
-    return res.status(403).json({ error: "Not authorized to manage this channel" });
+  if (!await canEditChannel(req.session.userId, channelId)) {
+    return res.status(403).json({ error: "Not authorized" });
   }
-  const db = loadDB();
-  const channel = db.users[channelId];
+  const channel = await getUser(channelId);
   if (!channel) return res.status(404).json({ error: "Channel not found" });
   res.json({ commands: channel.commands || [], active: channel.active });
 });
 
-// Save commands for a specific channel
-app.post("/api/commands/:channelId", requireAuth, (req, res) => {
+app.post("/api/commands/:channelId", requireAuth, async (req, res) => {
   const { channelId } = req.params;
-  if (!canEditChannel(req.session.userId, channelId)) {
-    return res.status(403).json({ error: "Not authorized to manage this channel" });
+  if (!await canEditChannel(req.session.userId, channelId)) {
+    return res.status(403).json({ error: "Not authorized" });
   }
-  const db = loadDB();
-  if (!db.users[channelId]) return res.status(404).json({ error: "Channel not found" });
-  db.users[channelId].commands = req.body.commands || [];
-  saveDB(db);
+  await updateCommands(channelId, req.body.commands || []);
   res.json({ ok: true });
 });
 
-app.post("/api/deactivate", requireAuth, (req, res) => {
-  const db = loadDB();
-  if (!db.users[req.session.userId]) return res.status(404).json({ error: "Not found" });
-  db.users[req.session.userId].active = false;
-  leaveChannel(db.users[req.session.userId].login);
-  saveDB(db);
+app.post("/api/deactivate", requireAuth, async (req, res) => {
+  const user = await getUser(req.session.userId);
+  if (!user) return res.status(404).json({ error: "Not found" });
+  await setActive(user.id, false);
+  leaveChannel(user.login);
   res.json({ ok: true });
 });
 
-app.post("/api/activate", requireAuth, (req, res) => {
-  const db = loadDB();
-  if (!db.users[req.session.userId]) return res.status(404).json({ error: "Not found" });
-  db.users[req.session.userId].active = true;
-  joinChannel(db.users[req.session.userId].login);
-  saveDB(db);
+app.post("/api/activate", requireAuth, async (req, res) => {
+  const user = await getUser(req.session.userId);
+  if (!user) return res.status(404).json({ error: "Not found" });
+  await setActive(user.id, true);
+  joinChannel(user.login);
   res.json({ ok: true });
 });
 
@@ -405,3 +439,5 @@ app.get("/dashboard", (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🌐 Server running on port ${PORT}`));
+
+startBot().catch(console.error);
