@@ -8,7 +8,7 @@
 <style>
   :root {
     --bg: #0d0d0f; --surface: #141416; --surface2: #1c1c20;
-    --border: #2a2a30; --accent: #29B6F6; --accent2: #FFEE58;
+    --border: #2a2a30; --accent: #9f6ef5; --accent2: #f56ef5;
     --green: #6ef5a0; --red: #f56e6e; --text: #e8e8f0; --muted: #6a6a7a;
     --mono: 'JetBrains Mono', monospace; --sans: 'Syne', sans-serif;
   }
@@ -40,11 +40,33 @@
 
   .container { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 40px 24px 80px; }
 
+  /* Channel switcher */
+  .channel-switcher {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px 20px; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 14px;
+    animation: fadeDown 0.4s ease both;
+  }
+  .switcher-label { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+  .channel-select {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-family: var(--mono); font-size: 13px;
+    padding: 8px 12px; outline: none; transition: border-color 0.15s; flex: 1; cursor: pointer;
+  }
+  .channel-select:focus { border-color: var(--accent); }
+  .channel-select option { background: var(--surface2); }
+  .role-badge {
+    font-family: var(--mono); font-size: 10px; font-weight: 600;
+    padding: 4px 10px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
+  }
+  .role-broadcaster { background: rgba(245,110,245,0.12); color: var(--accent2); }
+  .role-mod { background: rgba(159,110,245,0.15); color: var(--accent); }
+
   .status-card {
     background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
     padding: 20px 24px; margin-bottom: 28px;
     display: flex; align-items: center; justify-content: space-between;
-    animation: fadeDown 0.4s ease both;
+    animation: fadeDown 0.4s 0.05s ease both;
   }
   .status-left { display: flex; align-items: center; gap: 12px; }
   .status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); flex-shrink: 0; }
@@ -104,13 +126,15 @@
   .toggle-switch input:checked + .toggle-track { background: var(--accent); }
   .toggle-switch input:checked + .toggle-track::after { left: 19px; background: #fff; }
 
-  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 11px 18px; font-family: var(--mono); font-size: 13px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); z-index: 100; display: flex; align-items: center; gap: 8px; }
-  .toast.show { transform: translateX(-50%) translateY(0); }
-
-  .save-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .save-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
   .save-bar-left { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
   .save-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); transition: background 0.3s; }
   .save-dot.dirty { background: #f5a56e; }
+
+  .mod-notice { background: rgba(159,110,245,0.08); border: 1px solid rgba(159,110,245,0.2); border-radius: 8px; padding: 10px 14px; font-family: var(--mono); font-size: 12px; color: var(--accent); margin-bottom: 14px; }
+
+  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 11px 18px; font-family: var(--mono); font-size: 13px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); z-index: 100; display: flex; align-items: center; gap: 8px; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
 
   @keyframes fadeDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -118,28 +142,21 @@
     nav { padding: 0 16px; }
     .username { display: none; }
     .container { padding: 20px 12px 60px; }
-
     .status-card { flex-direction: column; align-items: flex-start; gap: 14px; }
     .status-card .btn { width: 100%; text-align: center; }
-
+    .channel-switcher { flex-direction: column; align-items: flex-start; }
+    .channel-select { width: 100%; }
     .commands-ref { grid-template-columns: 1fr 1fr; }
-
-    .save-bar { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .save-bar { flex-direction: column; align-items: flex-start; }
     .save-bar .btn { width: 100%; text-align: center; }
-
     .form-row { grid-template-columns: 1fr 1fr; }
     .form-row .field:nth-child(2) { grid-column: 1 / -1; }
     .btn-add { width: 100%; grid-column: 1 / -1; }
-
     .card-main { grid-template-columns: 1fr auto; }
-    .card-cell { padding: 10px 12px; }
-    .card-cell:nth-child(2) { display: none; }
-    .card-cell:nth-child(3) { display: none; }
-
+    .card-cell:nth-child(2), .card-cell:nth-child(3) { display: none; }
     .card-edit { grid-template-columns: 1fr; }
     .edit-fields { grid-template-columns: 1fr; }
     .card-edit .btn { width: 100%; }
-
     input, select { font-size: 16px; }
   }
 </style>
@@ -156,6 +173,13 @@
 </nav>
 
 <div class="container">
+
+  <!-- Channel switcher (hidden if only one channel) -->
+  <div class="channel-switcher" id="channelSwitcher" style="display:none;">
+    <span class="switcher-label">Managing</span>
+    <select class="channel-select" id="channelSelect" onchange="switchChannel()"></select>
+    <span class="role-badge" id="roleBadge"></span>
+  </div>
 
   <div class="status-card">
     <div class="status-left">
@@ -181,13 +205,15 @@
 
   <div class="section" style="animation-delay:0.15s;">
     <div class="save-bar">
-      <div>
-        <div class="section-title" style="margin-bottom:0;">// Custom commands</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;">
+      <div class="section-title" style="margin-bottom:0;">// Custom commands</div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
         <div class="save-bar-left"><div class="save-dot" id="saveDot"></div><span id="saveText">Saved</span></div>
         <button class="btn btn-primary" onclick="saveCommands()">Save Changes</button>
       </div>
+    </div>
+
+    <div id="modNotice" class="mod-notice" style="display:none;margin-top:14px;">
+      🛡️ You're editing commands for a channel you moderate.
     </div>
 
     <div class="form-row" style="margin-top:14px;">
@@ -213,20 +239,62 @@
   let userData = null;
   let commands = [];
   let dirty = false;
+  let selectedChannelId = null;
+  let selectedChannelRole = 'broadcaster';
 
   async function init() {
     const res = await fetch('/api/me');
     if (!res.ok) { location.href = '/'; return; }
     userData = await res.json();
-    commands = userData.commands || [];
 
     document.getElementById('navAvatar').src = userData.profileImage;
     document.getElementById('navUsername').textContent = userData.displayName;
 
-    const since = new Date(userData.joinedAt).toLocaleDateString();
-    document.getElementById('statusSub').textContent = `Connected since ${since} · #${userData.login}`;
+    // Build channel dropdown
+    const channels = userData.channels || [];
+    if (channels.length > 1) {
+      const select = document.getElementById('channelSelect');
+      select.innerHTML = channels.map(c =>
+        `<option value="${c.id}" data-role="${c.role}">${c.displayName} (${c.role === 'broadcaster' ? 'Your channel' : 'Mod'})</option>`
+      ).join('');
+      document.getElementById('channelSwitcher').style.display = 'flex';
+    }
 
+    selectedChannelId = userData.id;
+    selectedChannelRole = 'broadcaster';
+    updateRoleBadge();
     updateStatusUI();
+    await loadChannelCommands(selectedChannelId);
+  }
+
+  function updateRoleBadge() {
+    const badge = document.getElementById('roleBadge');
+    badge.textContent = selectedChannelRole === 'broadcaster' ? 'Broadcaster' : 'Moderator';
+    badge.className = `role-badge role-${selectedChannelRole}`;
+    document.getElementById('modNotice').style.display = selectedChannelRole === 'mod' ? 'block' : 'none';
+  }
+
+  async function switchChannel() {
+    const select = document.getElementById('channelSelect');
+    const option = select.options[select.selectedIndex];
+    selectedChannelId = select.value;
+    selectedChannelRole = option.dataset.role;
+    updateRoleBadge();
+
+    // Update status card for broadcaster's own channel only
+    const isOwn = selectedChannelId === userData.id;
+    document.getElementById('toggleBtn').style.display = isOwn ? '' : 'none';
+    updateStatusUI();
+
+    await loadChannelCommands(selectedChannelId);
+  }
+
+  async function loadChannelCommands(channelId) {
+    const res = await fetch(`/api/commands/${channelId}`);
+    if (!res.ok) { showToast('❌', 'Could not load commands'); return; }
+    const data = await res.json();
+    commands = data.commands || [];
+    setDirty(false);
     renderCommands();
   }
 
@@ -234,17 +302,21 @@
     const dot = document.getElementById('statusDot');
     const text = document.getElementById('statusText');
     const btn = document.getElementById('toggleBtn');
-    if (userData.active) {
+    const isOwn = selectedChannelId === userData.id;
+    const active = isOwn ? userData.active : true;
+
+    if (active) {
       dot.classList.remove('inactive');
-      text.textContent = 'Bot is active in your channel';
-      btn.textContent = 'Deactivate';
-      btn.className = 'btn btn-ghost';
+      text.textContent = 'Bot is active in this channel';
+      if (isOwn) { btn.textContent = 'Deactivate'; btn.className = 'btn btn-ghost'; }
     } else {
       dot.classList.add('inactive');
       text.textContent = 'Bot is not active';
-      btn.textContent = 'Activate';
-      btn.className = 'btn btn-primary';
+      if (isOwn) { btn.textContent = 'Activate'; btn.className = 'btn btn-primary'; }
     }
+
+    const since = new Date(userData.joinedAt).toLocaleDateString();
+    document.getElementById('statusSub').textContent = `Connected since ${since}`;
   }
 
   async function toggleBot() {
@@ -344,13 +416,17 @@
     commands[i] = { ...commands[i], command: cmd.startsWith('!') ? cmd : '!'+cmd, response: resp, permission: perm };
     setDirty(true);
     renderCommands();
-    showToast('✅', `Updated ${commands[i].command}`);
+    showToast('✅', `Updated`);
   }
 
   async function saveCommands() {
-    await fetch('/api/commands', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ commands }) });
-    setDirty(false);
-    showToast('💾', 'Commands saved!');
+    const res = await fetch(`/api/commands/${selectedChannelId}`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ commands })
+    });
+    if (res.ok) { setDirty(false); showToast('💾', 'Commands saved!'); }
+    else showToast('❌', 'Failed to save');
   }
 
   let toastTimer;
