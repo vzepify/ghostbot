@@ -24,6 +24,7 @@ async function initDB() {
       active BOOLEAN DEFAULT true,
       commands JSONB DEFAULT '[]',
       modded_channels JSONB DEFAULT '[]',
+      timers JSONB DEFAULT '[]',
       joined_at TIMESTAMPTZ DEFAULT NOW()
     )
   `);
@@ -74,8 +75,82 @@ async function updateModdedChannels(id, moddedChannels) {
   await pool.query("UPDATE users SET modded_channels = $2 WHERE id = $1", [id, JSON.stringify(moddedChannels)]);
 }
 
+async function updateTimers(id, timers) {
+  await pool.query("UPDATE users SET timers = $2 WHERE id = $1", [id, JSON.stringify(timers)]);
+}
+
 async function setActive(id, active) {
   await pool.query("UPDATE users SET active = $2 WHERE id = $1", [id, active]);
+}
+
+// ── Timer engine ─────────────────────────────────────────────
+const timerState = {}; // channelId -> { timerId -> { nextFire, countdownTarget } }
+
+async function isChannelLive(userId, token) {
+  try {
+    const data = await helixGet(`/streams?user_id=${userId}`, token);
+    return (data.data || []).length > 0;
+  } catch (e) { return false; }
+}
+
+async function runTimers() {
+  try {
+    const res = await pool.query("SELECT * FROM users WHERE active = true");
+    for (const user of res.rows) {
+      const timers = user.timers || [];
+      if (!timers.length) continue;
+      if (!timerState[user.id]) timerState[user.id] = {};
+
+      let token = null;
+      let live = null;
+
+      for (const timer of timers) {
+        if (!timer.enabled) continue;
+
+        const state = timerState[user.id][timer.id] || {};
+        const now = Date.now();
+
+        // Get live status if needed (cache per tick)
+        if (timer.liveOnly && live === null) {
+          try {
+            if (!token) token = await getValidToken(user.id);
+            live = await isChannelLive(user.id, token);
+          } catch (e) { live = false; }
+        }
+        if (timer.liveOnly && !live) continue;
+
+        if (timer.type === 'interval') {
+          const interval = (timer.intervalMinutes || 30) * 60 * 1000;
+          const lastFire = state.lastFire || (now - interval); // fire immediately on first tick
+          if (now - lastFire >= interval) {
+            try {
+              await client.say(`#${user.login}`, timer.message);
+              timerState[user.id][timer.id] = { ...state, lastFire: now };
+            } catch (e) {}
+          } else if (!state.lastFire) {
+            timerState[user.id][timer.id] = { ...state, lastFire: now };
+          }
+        }
+
+        if (timer.type === 'countdown') {
+          // Initialize countdown target if not set
+          if (!state.countdownTarget) {
+            const ms = (timer.countdownMinutes || 60) * 60 * 1000;
+            timerState[user.id][timer.id] = { ...state, countdownTarget: now + ms, fired: false };
+            continue;
+          }
+          if (!state.fired && now >= state.countdownTarget) {
+            try {
+              await client.say(`#${user.login}`, timer.message);
+              timerState[user.id][timer.id] = { ...state, fired: true };
+            } catch (e) {}
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Timer engine error:", e.message);
+  }
 }
 
 // ── Express setup ────────────────────────────────────────────
@@ -430,6 +505,7 @@ app.get("/api/me", requireAuth, async (req, res) => {
     id: user.id, login: user.login, displayName: user.display_name,
     profileImage: user.profile_image, active: user.active,
     joinedAt: user.joined_at, channels,
+    timers: user.timers || [],
   });
 });
 
@@ -465,6 +541,41 @@ app.post("/api/activate", requireAuth, async (req, res) => {
   if (!user) return res.status(404).json({ error: "Not found" });
   await setActive(user.id, true);
   joinChannel(user.login);
+  res.json({ ok: true });
+});
+
+// ── Timer API ────────────────────────────────────────────────
+app.get("/api/timers/:channelId", requireAuth, async (req, res) => {
+  const { channelId } = req.params;
+  if (!await canEditChannel(req.session.userId, channelId)) {
+    return res.status(403).json({ error: "Not authorized" });
+  }
+  const channel = await getUser(channelId);
+  if (!channel) return res.status(404).json({ error: "Channel not found" });
+  res.json({ timers: channel.timers || [] });
+});
+
+app.post("/api/timers/:channelId", requireAuth, async (req, res) => {
+  const { channelId } = req.params;
+  if (!await canEditChannel(req.session.userId, channelId)) {
+    return res.status(403).json({ error: "Not authorized" });
+  }
+  const timers = req.body.timers || [];
+  await updateTimers(channelId, timers);
+  // Reset timer state so changes take effect immediately
+  if (timerState[channelId]) delete timerState[channelId];
+  res.json({ ok: true });
+});
+
+// Reset a specific countdown timer
+app.post("/api/timers/:channelId/reset/:timerId", requireAuth, async (req, res) => {
+  const { channelId, timerId } = req.params;
+  if (!await canEditChannel(req.session.userId, channelId)) {
+    return res.status(403).json({ error: "Not authorized" });
+  }
+  if (timerState[channelId] && timerState[channelId][timerId]) {
+    delete timerState[channelId][timerId];
+  }
   res.json({ ok: true });
 });
 
