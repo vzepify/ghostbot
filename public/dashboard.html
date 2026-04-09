@@ -105,11 +105,12 @@
   .command-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; overflow: hidden; transition: border-color 0.15s; }
   .command-card:hover { border-color: #3a3a45; }
   .command-card.editing { border-color: var(--accent); }
-  .card-main { display: grid; grid-template-columns: 140px 1fr 110px auto auto; gap: 0; align-items: stretch; }
-  .card-cell { padding: 12px 14px; border-right: 1px solid var(--border); display: flex; align-items: center; }
-  .card-cell:last-child { border-right: none; gap: 6px; }
-  .cmd-name { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--accent); }
-  .cmd-response { font-family: var(--mono); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card-main { display: grid; grid-template-columns: 140px minmax(0,1fr) 110px auto auto; gap: 0; align-items: stretch; }
+  .card-cell { padding: 12px 14px; border-right: 1px solid var(--border); display: flex; align-items: center; min-width: 0; }
+  .card-cell:last-child { border-right: none; gap: 6px; flex-shrink: 0; }
+  .card-cell:nth-child(4) { flex-shrink: 0; }
+  .cmd-name { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cmd-response { font-family: var(--mono); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; width: 100%; }
   .perm-badge { font-family: var(--mono); font-size: 10px; font-weight: 600; padding: 3px 7px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
   .perm-everyone { background: rgba(110,245,160,0.12); color: var(--green); }
   .perm-mods { background: rgba(159,110,245,0.15); color: var(--accent); }
