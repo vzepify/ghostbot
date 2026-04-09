@@ -192,11 +192,14 @@ function isPrivileged(tags) { return isBroadcaster(tags) || isMod(tags); }
 async function canEditChannel(requestingUserId, targetChannelId) {
   if (requestingUserId === targetChannelId) return true;
   const requester = await getUser(requestingUserId);
-  if (!requester) return false;
+  if (!requester) { console.log("canEdit: requester not found"); return false; }
   const target = await getUser(targetChannelId);
-  if (!target) return false;
+  if (!target) { console.log("canEdit: target not found:", targetChannelId); return false; }
   const modded = requester.modded_channels || [];
-  return modded.some(c => c.id === targetChannelId);
+  console.log("modded_channels:", JSON.stringify(modded));
+  console.log("looking for:", targetChannelId, typeof targetChannelId);
+  console.log("stored ids:", modded.map(c => `${c.id} (${typeof c.id})`));
+  return modded.some(c => String(c.id) === String(targetChannelId));
 }
 
 // ── Chat message handler ─────────────────────────────────────
