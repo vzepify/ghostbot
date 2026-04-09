@@ -16,6 +16,7 @@ app.use(session({
   saveUninitialized: false,
 }));
 
+// Restore session from persistent cookie if session expired
 app.use((req, res, next) => {
   if (!req.session.userId && req.cookies?.botUserId) {
     const db = loadDB();
@@ -28,18 +29,7 @@ app.use((req, res, next) => {
 
 app.use(express.static("public"));
 
-// Restore session from persistent cookie if session expired
-app.use((req, res, next) => {
-  if (!req.session.userId && req.cookies?.botUserId) {
-    const db = loadDB();
-    if (db.users[req.cookies.botUserId]) {
-      req.session.userId = req.cookies.botUserId;
-    }
-  }
-  next();
-});
-
-// ── Data store (JSON file, simple & free) ───────────────────
+// ── Data store ───────────────────────────────────────────────
 const DB_FILE = "./data.json";
 
 function loadDB() {
@@ -53,7 +43,9 @@ function saveDB(db) {
   fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
 }
 
-// ── tmi.js multi-channel bot ─────────────────────────────────
+// ── tmi.js ───────────────────────────────────────────────────
+const joinedChannels = new Set();
+
 const client = new tmi.Client({
   identity: {
     username: process.env.BOT_USERNAME,
@@ -64,7 +56,6 @@ const client = new tmi.Client({
 
 client.connect().then(() => {
   console.log("✅ Bot connected to Twitch IRC");
-  // Join all stored channels on startup
   const db = loadDB();
   Object.values(db.users).forEach(user => {
     if (user.active) joinChannel(user.login);
@@ -72,26 +63,18 @@ client.connect().then(() => {
 }).catch(console.error);
 
 function joinChannel(login) {
-  try {
-    client.join(login);
-    console.log(`➕ Joined #${login}`);
-  } catch (e) {}
+  if (joinedChannels.has(login)) return;
+  try { client.join(login); joinedChannels.add(login); console.log(`➕ Joined #${login}`); } catch (e) {}
 }
 
 function leaveChannel(login) {
-  try {
-    client.part(login);
-    console.log(`➖ Left #${login}`);
-  } catch (e) {}
+  try { client.part(login); joinedChannels.delete(login); console.log(`➖ Left #${login}`); } catch (e) {}
 }
 
-// ── Helix API helpers ────────────────────────────────────────
+// ── Helix helpers ────────────────────────────────────────────
 async function helixGet(path, token) {
   const res = await fetch(`https://api.twitch.tv/helix${path}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Client-Id": process.env.TWITCH_CLIENT_ID,
-    },
+    headers: { Authorization: `Bearer ${token}`, "Client-Id": process.env.TWITCH_CLIENT_ID },
   });
   return res.json();
 }
@@ -99,11 +82,7 @@ async function helixGet(path, token) {
 async function helixPatch(path, body, token) {
   const res = await fetch(`https://api.twitch.tv/helix${path}`, {
     method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Client-Id": process.env.TWITCH_CLIENT_ID,
-      "Content-Type": "application/json",
-    },
+    headers: { Authorization: `Bearer ${token}`, "Client-Id": process.env.TWITCH_CLIENT_ID, "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   return res.status === 204 ? { ok: true } : res.json();
@@ -135,7 +114,6 @@ async function getValidToken(userId) {
   const db = loadDB();
   const user = db.users[userId];
   if (!user) throw new Error("User not found");
-  // Try existing token, refresh if needed
   try {
     const test = await helixGet(`/users?id=${userId}`, user.accessToken);
     if (test.data) return user.accessToken;
@@ -143,10 +121,31 @@ async function getValidToken(userId) {
   return refreshUserToken(user);
 }
 
+// Fetch channels a user moderates
+async function fetchModdedChannels(userId, token) {
+  try {
+    const data = await helixGet(`/moderation/channels?user_id=${userId}&first=100`, token);
+    return (data.data || []).map(c => ({ id: c.broadcaster_id, login: c.broadcaster_login, displayName: c.broadcaster_name }));
+  } catch (e) { return []; }
+}
+
 // ── Permission helpers ───────────────────────────────────────
 function isBroadcaster(tags) { return !!tags.badges?.broadcaster; }
 function isMod(tags) { return tags.mod || isBroadcaster(tags); }
 function isPrivileged(tags) { return isBroadcaster(tags) || isMod(tags); }
+
+// Check if a userId is a mod or broadcaster of a channelId
+function canEditChannel(requestingUserId, targetChannelId) {
+  const db = loadDB();
+  const targetUser = db.users[targetChannelId];
+  if (!targetUser) return false;
+  // Is the requester the broadcaster?
+  if (requestingUserId === targetChannelId) return true;
+  // Is the requester a mod of that channel?
+  const requester = db.users[requestingUserId];
+  if (!requester) return false;
+  return (requester.moddedChannels || []).some(c => c.id === targetChannelId);
+}
 
 // ── Chat message handler ─────────────────────────────────────
 client.on("message", async (channel, tags, message, self) => {
@@ -158,13 +157,11 @@ client.on("message", async (channel, tags, message, self) => {
   const command = cmd.toLowerCase();
   const say = (text) => client.say(channel, text);
 
-  // Find this channel's user record
   const db = loadDB();
   const user = Object.values(db.users).find(u => u.login === channelName);
   if (!user) return;
 
   try {
-    // ── Built-in commands ──────────────────────────────────
     if (command === "!commands") {
       const customCmds = (user.commands || []).filter(c => c.enabled !== false).map(c => c.command);
       const builtIn = ["!title", "!game", "!uptime", "!shoutout"];
@@ -183,7 +180,6 @@ client.on("message", async (channel, tags, message, self) => {
     }
 
     if (!isPrivileged(tags)) {
-      // Check custom commands for everyone
       const match = (user.commands || []).find(c => c.command === command && c.enabled !== false && c.permission === "everyone");
       if (match) say(match.response);
       return;
@@ -221,7 +217,6 @@ client.on("message", async (channel, tags, message, self) => {
       return;
     }
 
-    // ── Custom commands (mods+) ────────────────────────────
     const match = (user.commands || []).find(c => c.command === command && c.enabled !== false);
     if (match) {
       const perm = match.permission || "everyone";
@@ -235,8 +230,8 @@ client.on("message", async (channel, tags, message, self) => {
   }
 });
 
-// ── OAuth Routes ─────────────────────────────────────────────
-const SCOPES = "chat:read chat:edit channel:manage:broadcast channel:bot moderator:read:chatters";
+// ── OAuth ────────────────────────────────────────────────────
+const SCOPES = "chat:read chat:edit channel:manage:broadcast channel:bot user:read:moderated_channels";
 
 app.get("/auth/twitch", (req, res) => {
   const state = crypto.randomBytes(16).toString("hex");
@@ -254,12 +249,9 @@ app.get("/auth/twitch", (req, res) => {
 
 app.get("/auth/callback", async (req, res) => {
   const { code, state, error } = req.query;
-  if (error || state !== req.session.oauthState) {
-    return res.redirect("/?error=auth_failed");
-  }
+  if (error || state !== req.session.oauthState) return res.redirect("/?error=auth_failed");
 
   try {
-    // Exchange code for tokens
     const tokenRes = await fetch("https://id.twitch.tv/oauth2/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -274,12 +266,13 @@ app.get("/auth/callback", async (req, res) => {
     const tokens = await tokenRes.json();
     if (!tokens.access_token) throw new Error("No access token");
 
-    // Get user info
     const userRes = await helixGet("/users", tokens.access_token);
     const twitchUser = userRes.data?.[0];
     if (!twitchUser) throw new Error("No user data");
 
-    // Save to DB
+    // Fetch channels this user mods for
+    const moddedChannels = await fetchModdedChannels(twitchUser.id, tokens.access_token);
+
     const db = loadDB();
     const isNew = !db.users[twitchUser.id];
     db.users[twitchUser.id] = {
@@ -291,16 +284,16 @@ app.get("/auth/callback", async (req, res) => {
       refreshToken: tokens.refresh_token,
       active: true,
       commands: db.users[twitchUser.id]?.commands || [],
+      moddedChannels,
       joinedAt: db.users[twitchUser.id]?.joinedAt || new Date().toISOString(),
     };
     saveDB(db);
 
     req.session.userId = twitchUser.id;
-
     if (isNew) joinChannel(twitchUser.login);
 
     res.cookie("botUserId", twitchUser.id, { maxAge: 1000 * 60 * 60 * 24 * 30, httpOnly: true });
-res.redirect("/dashboard");  
+    res.redirect("/dashboard");
   } catch (err) {
     console.error("Auth error:", err);
     res.redirect("/?error=auth_failed");
@@ -308,6 +301,7 @@ res.redirect("/dashboard");
 });
 
 app.get("/auth/logout", (req, res) => {
+  res.clearCookie("botUserId");
   req.session.destroy();
   res.redirect("/");
 });
@@ -318,18 +312,48 @@ function requireAuth(req, res, next) {
   next();
 }
 
+// Get current user info + list of channels they can manage
 app.get("/api/me", requireAuth, (req, res) => {
   const db = loadDB();
   const user = db.users[req.session.userId];
   if (!user) return res.status(404).json({ error: "User not found" });
-  res.json({ id: user.id, login: user.login, displayName: user.displayName, profileImage: user.profileImage, active: user.active, commands: user.commands || [], joinedAt: user.joinedAt });
+
+  // Build list of channels they can manage (own + modded that have authorized)
+  const manageable = [
+    { id: user.id, login: user.login, displayName: user.displayName, profileImage: user.profileImage, role: "broadcaster" },
+    ...(user.moddedChannels || [])
+      .filter(c => db.users[c.id]) // only show if that channel has authorized the bot
+      .map(c => ({ id: c.id, login: c.login, displayName: c.displayName, profileImage: null, role: "mod" }))
+  ];
+
+  res.json({
+    id: user.id, login: user.login, displayName: user.displayName,
+    profileImage: user.profileImage, active: user.active,
+    joinedAt: user.joinedAt, channels: manageable,
+  });
 });
 
-app.post("/api/commands", requireAuth, (req, res) => {
+// Get commands for a specific channel
+app.get("/api/commands/:channelId", requireAuth, (req, res) => {
+  const { channelId } = req.params;
+  if (!canEditChannel(req.session.userId, channelId)) {
+    return res.status(403).json({ error: "Not authorized to manage this channel" });
+  }
   const db = loadDB();
-  const user = db.users[req.session.userId];
-  if (!user) return res.status(404).json({ error: "Not found" });
-  db.users[req.session.userId].commands = req.body.commands || [];
+  const channel = db.users[channelId];
+  if (!channel) return res.status(404).json({ error: "Channel not found" });
+  res.json({ commands: channel.commands || [], active: channel.active });
+});
+
+// Save commands for a specific channel
+app.post("/api/commands/:channelId", requireAuth, (req, res) => {
+  const { channelId } = req.params;
+  if (!canEditChannel(req.session.userId, channelId)) {
+    return res.status(403).json({ error: "Not authorized to manage this channel" });
+  }
+  const db = loadDB();
+  if (!db.users[channelId]) return res.status(404).json({ error: "Channel not found" });
+  db.users[channelId].commands = req.body.commands || [];
   saveDB(db);
   res.json({ ok: true });
 });
@@ -352,7 +376,6 @@ app.post("/api/activate", requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
-// ── Serve frontend ───────────────────────────────────────────
 // ── Serve frontend ───────────────────────────────────────────
 app.get("/", (req, res, next) => {
   if (req.session.userId) return res.redirect("/dashboard");
