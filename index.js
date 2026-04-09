@@ -113,15 +113,12 @@ const client = new tmi.Client({
 
 async function startBot() {
   await initDB();
-  try {
-    await client.connect();
-    console.log("✅ Bot connected to Twitch IRC");
-    const users = await getAllActiveUsers();
-    users.forEach(u => joinChannel(u.login));
-  } catch (err) {
-    console.error("❌ Bot IRC connection failed:", err.message);
-  }
+  await client.connect();
+  console.log("✅ Bot connected to Twitch IRC");
+  const users = await getAllActiveUsers();
+  users.forEach(u => joinChannel(u.login));
 }
+
 function joinChannel(login) {
   if (joinedChannels.has(login)) return;
   try { client.join(login); joinedChannels.add(login); console.log(`➕ Joined #${login}`); } catch (e) {}
@@ -192,14 +189,52 @@ function isPrivileged(tags) { return isBroadcaster(tags) || isMod(tags); }
 async function canEditChannel(requestingUserId, targetChannelId) {
   if (requestingUserId === targetChannelId) return true;
   const requester = await getUser(requestingUserId);
-  if (!requester) { console.log("canEdit: requester not found"); return false; }
+  if (!requester) return false;
   const target = await getUser(targetChannelId);
-  if (!target) { console.log("canEdit: target not found:", targetChannelId); return false; }
+  if (!target) return false;
   const modded = requester.modded_channels || [];
-  console.log("modded_channels:", JSON.stringify(modded));
-  console.log("looking for:", targetChannelId, typeof targetChannelId);
-  console.log("stored ids:", modded.map(c => `${c.id} (${typeof c.id})`));
-  return modded.some(c => String(c.id) === String(targetChannelId));
+  return modded.some(c => c.id === targetChannelId);
+}
+
+// ── Variable resolver ────────────────────────────────────────
+// Supports {valorant_rank:Name#Tag} and {http:https://...} in command responses
+async function resolveVariables(text, tags, channelName) {
+  // {valorant_rank:RiotName#Tag}
+  const valorantRegex = /\{valorant_rank:([^#]+)#([^}]+)\}/g;
+  let match;
+  while ((match = valorantRegex.exec(text)) !== null) {
+    const [full, name, tag] = match;
+    try {
+      const res = await fetch(`https://api.henrikdev.xyz/valorant/v2/mmr/na/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`);
+      const data = await res.json();
+      const rank = data.data?.current_data?.currenttierpatched || 'Unranked';
+      const rr = data.data?.current_data?.ranking_in_tier ?? 0;
+      text = text.replace(full, `${rank} ${rr}RR`);
+    } catch (e) {
+      text = text.replace(full, 'Could not fetch rank');
+    }
+  }
+
+  // {http:https://some-api.com/endpoint} — fetches URL and uses response as text
+  const httpRegex = /\{http:(https?:\/\/[^}]+)\}/g;
+  while ((match = httpRegex.exec(text)) !== null) {
+    const [full, url] = match;
+    try {
+      const res = await fetch(url);
+      const result = (await res.text()).trim().slice(0, 400); // cap at 400 chars
+      text = text.replace(full, result);
+    } catch (e) {
+      text = text.replace(full, 'Could not fetch URL');
+    }
+  }
+
+  // {user} — name of person who typed the command
+  text = text.replace(/\{user\}/g, tags['display-name'] || tags.username || 'someone');
+
+  // {channel} — channel name
+  text = text.replace(/\{channel\}/g, channelName);
+
+  return text;
 }
 
 // ── Chat message handler ─────────────────────────────────────
@@ -277,7 +312,8 @@ client.on("message", async (channel, tags, message, self) => {
       const perm = match.permission || "everyone";
       if (perm === "broadcaster" && !isBroadcaster(tags)) return;
       if (perm === "mods" && !isMod(tags)) return;
-      say(match.response);
+      const resolved = await resolveVariables(match.response, tags, channelName);
+      say(resolved);
     }
 
   } catch (err) {
@@ -446,7 +482,4 @@ app.get("/dashboard", (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🌐 Server running on port ${PORT}`));
 
-startBot().catch(err => {
-  console.error("Failed to start bot:", err.message);
-  // Keep the web server running even if bot fails
-});
+startBot().catch(console.error);
