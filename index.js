@@ -590,6 +590,11 @@ app.get("/dashboard", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
+app.get("/timers", (req, res) => {
+  if (!req.session.userId) return res.redirect("/");
+  res.sendFile(path.join(__dirname, "public", "timers.html"));
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🌐 Server running on port ${PORT}`));
 
