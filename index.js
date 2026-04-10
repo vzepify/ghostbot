@@ -97,8 +97,10 @@ async function runTimers() {
   try {
     const res = await pool.query("SELECT * FROM users WHERE active = true");
     for (const user of res.rows) {
-      const timers = user.timers || [];
-      if (!timers.length) continue;
+      const timers = typeof user.timers === "string"
+  ? JSON.parse(user.timers)
+  : (user.timers || []);
+
       if (!timerState[user.id]) timerState[user.id] = {};
 
       let token = null;
