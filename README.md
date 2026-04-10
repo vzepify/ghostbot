@@ -32,3 +32,10 @@ v0.0.1: Added 2 new features.
 2. Can now edit/add/delete 
 commands if u mod for a channel
 that is authorized by the bot.
+
+
+
+v0.0.2: Added  Timers Modeule for commands
+streamers and mods can now use/set timers for messages with the bot.
+
+more soon.
