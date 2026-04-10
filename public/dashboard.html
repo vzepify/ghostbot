@@ -189,6 +189,30 @@
   }
   .switcher-label { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
 
+
+  /* Timers */
+  .timer-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; overflow: hidden; margin-bottom: 6px; }
+  .timer-main { display: grid; grid-template-columns: 160px 60px 80px 100px auto auto; gap: 0; align-items: stretch; }
+  .timer-cell { padding: 12px 14px; border-right: 1px solid var(--border); display: flex; align-items: center; font-family: var(--mono); font-size: 12px; }
+  .timer-cell:last-child { border-right: none; gap: 6px; }
+  .timer-name { font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .timer-type-badge { font-size: 10px; font-weight: 600; padding: 3px 7px; border-radius: 4px; text-transform: uppercase; white-space: nowrap; }
+  .type-interval { background: rgba(110,245,160,0.12); color: var(--green); }
+  .type-countdown { background: rgba(245,180,110,0.12); color: #f5b46e; }
+  .timer-edit { background: #18181c; padding: 14px; border-top: 1px solid var(--border); display: none; }
+  .timer-edit.open { display: block; }
+  .timer-edit-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .timer-edit-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
+  .timer-live-row { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .live-badge { font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+  .live-yes { background: rgba(110,245,160,0.12); color: var(--green); }
+  .live-no { background: rgba(106,106,122,0.2); color: var(--muted); }
+
+  @media (max-width: 600px) {
+    .timer-main { grid-template-columns: 1fr auto auto; }
+    .timer-cell:nth-child(2), .timer-cell:nth-child(3), .timer-cell:nth-child(4) { display: none; }
+    .timer-edit-grid { grid-template-columns: 1fr; }
+  }
   @keyframes fadeDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
   @media (max-width: 600px) {
@@ -296,6 +320,31 @@
     </div>
 
     <div class="command-list" id="commandList"></div>
+  </div>
+</div>
+
+  <div class="section" style="animation-delay:0.2s;">
+    <div class="save-bar">
+      <div class="section-title" style="margin-bottom:0;">// Timers</div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div class="save-bar-left"><div class="save-dot" id="timerSaveDot"></div><span id="timerSaveText">Saved</span></div>
+        <button class="btn btn-primary" onclick="saveTimers()">Save Timers</button>
+      </div>
+    </div>
+
+    <div class="form-row" style="margin-top:14px;grid-template-columns:1fr 1fr 100px auto;">
+      <div class="field"><label>Timer name</label><input type="text" id="newTimerName" placeholder="Social links" /></div>
+      <div class="field"><label>Message</label><input type="text" id="newTimerMsg" placeholder="Follow me on Twitter!" /></div>
+      <div class="field"><label>Type</label>
+        <select id="newTimerType">
+          <option value="interval">Interval</option>
+          <option value="countdown">Countdown</option>
+        </select>
+      </div>
+      <button class="btn-add" onclick="addTimer()">+ Add</button>
+    </div>
+
+    <div id="timerList"></div>
   </div>
 </div>
 
@@ -535,6 +584,153 @@
   }
 
   document.getElementById('newResp').addEventListener('keydown', e => { if (e.key === 'Enter') addCommand(); });
+
+  // ── Timers ──────────────────────────────────────────────────
+  let timers = [];
+  let timerDirty = false;
+
+  function setTimerDirty(val) {
+    timerDirty = val;
+    document.getElementById('timerSaveDot').classList.toggle('dirty', val);
+    document.getElementById('timerSaveText').textContent = val ? 'Unsaved changes' : 'Saved';
+  }
+
+  async function loadTimers(channelId) {
+    const res = await fetch(`/api/timers/${channelId}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    timers = data.timers || [];
+    setTimerDirty(false);
+    renderTimers();
+  }
+
+  function renderTimers() {
+    const list = document.getElementById('timerList');
+    if (!timers.length) {
+      list.innerHTML = '<div class="empty">No timers yet — add one above</div>';
+      return;
+    }
+    list.innerHTML = timers.map((t, i) => `
+      <div class="timer-card" id="tcrd-${i}">
+        <div class="timer-main">
+          <div class="timer-cell"><span class="timer-name">${esc(t.name)}</span></div>
+          <div class="timer-cell"><span class="timer-type-badge type-${t.type}">${t.type}</span></div>
+          <div class="timer-cell" style="color:var(--muted);">${t.type === 'interval' ? t.intervalMinutes + 'm' : t.countdownMinutes + 'm'}</div>
+          <div class="timer-cell"><span class="live-badge ${t.liveOnly ? 'live-yes' : 'live-no'}">${t.liveOnly ? 'Live only' : 'Always'}</span></div>
+          <div class="timer-cell">
+            <label class="toggle-switch"><input type="checkbox" ${t.enabled !== false ? 'checked' : ''} onchange="toggleTimer(${i},this.checked)"><span class="toggle-track"></span></label>
+          </div>
+          <div class="timer-cell">
+            <button class="btn btn-ghost" style="padding:5px 10px;font-size:12px;" onclick="toggleTimerEdit(${i})">Edit</button>
+            ${t.type === 'countdown' ? `<button class="btn btn-ghost" style="padding:5px 10px;font-size:12px;" onclick="resetCountdown(${i})" title="Reset countdown">↺</button>` : ''}
+            <button class="btn-danger-ghost btn" onclick="deleteTimer(${i})">×</button>
+          </div>
+        </div>
+        <div class="timer-edit" id="tedit-${i}">
+          <div class="timer-edit-grid">
+            <div class="field"><label>Name</label><input type="text" id="tn-${i}" value="${esc(t.name)}" /></div>
+            <div class="field"><label>Type</label>
+              <select id="tt-${i}" onchange="renderTimerEditFields(${i})">
+                <option value="interval" ${t.type==='interval'?'selected':''}>Interval</option>
+                <option value="countdown" ${t.type==='countdown'?'selected':''}>Countdown</option>
+              </select>
+            </div>
+            <div class="field" id="tmin-field-${i}">
+              <label id="tmin-label-${i}">${t.type === 'interval' ? 'Every (minutes)' : 'Countdown (minutes)'}</label>
+              <input type="number" id="tmin-${i}" min="1" value="${t.type === 'interval' ? (t.intervalMinutes||30) : (t.countdownMinutes||60)}" />
+            </div>
+          </div>
+          <div class="field" style="margin-bottom:10px;"><label>Message</label><input type="text" id="tm-${i}" value="${esc(t.message)}" /></div>
+          <div class="timer-edit-row">
+            <div class="timer-live-row">
+              <label class="toggle-switch"><input type="checkbox" id="tlive-${i}" ${t.liveOnly ? 'checked' : ''}><span class="toggle-track"></span></label>
+              Only fire when channel is live
+            </div>
+            <button class="btn btn-primary" onclick="saveTimerEdit(${i})">Save</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderTimerEditFields(i) {
+    const type = document.getElementById(`tt-${i}`).value;
+    document.getElementById(`tmin-label-${i}`).textContent = type === 'interval' ? 'Every (minutes)' : 'Countdown (minutes)';
+  }
+
+  function addTimer() {
+    const name = document.getElementById('newTimerName').value.trim();
+    const msg = document.getElementById('newTimerMsg').value.trim();
+    const type = document.getElementById('newTimerType').value;
+    if (!name || !msg) { showToast('⚠️', 'Fill in name and message'); return; }
+    const id = 'timer_' + Date.now();
+    timers.push({
+      id, name, message: msg, type,
+      intervalMinutes: 30, countdownMinutes: 60,
+      liveOnly: true, enabled: true
+    });
+    document.getElementById('newTimerName').value = '';
+    document.getElementById('newTimerMsg').value = '';
+    setTimerDirty(true);
+    renderTimers();
+    showToast('✅', `Added timer: ${name}`);
+  }
+
+  function deleteTimer(i) {
+    timers.splice(i, 1);
+    setTimerDirty(true);
+    renderTimers();
+    showToast('🗑️', 'Timer deleted');
+  }
+
+  function toggleTimer(i, val) { timers[i].enabled = val; setTimerDirty(true); }
+
+  function toggleTimerEdit(i) {
+    const el = document.getElementById(`tedit-${i}`);
+    const isOpen = el.classList.contains('open');
+    document.querySelectorAll('.timer-edit.open').forEach(e => e.classList.remove('open'));
+    if (!isOpen) el.classList.add('open');
+  }
+
+  function saveTimerEdit(i) {
+    const type = document.getElementById(`tt-${i}`).value;
+    const mins = parseInt(document.getElementById(`tmin-${i}`).value) || 30;
+    timers[i] = {
+      ...timers[i],
+      name: document.getElementById(`tn-${i}`).value.trim(),
+      message: document.getElementById(`tm-${i}`).value.trim(),
+      type,
+      intervalMinutes: type === 'interval' ? mins : timers[i].intervalMinutes,
+      countdownMinutes: type === 'countdown' ? mins : timers[i].countdownMinutes,
+      liveOnly: document.getElementById(`tlive-${i}`).checked,
+    };
+    setTimerDirty(true);
+    renderTimers();
+    showToast('✅', 'Timer updated');
+  }
+
+  async function resetCountdown(i) {
+    const timer = timers[i];
+    await fetch(`/api/timers/${selectedChannelId}/reset/${timer.id}`, { method: 'POST' });
+    showToast('↺', `Countdown reset: ${timer.name}`);
+  }
+
+  async function saveTimers() {
+    const res = await fetch(`/api/timers/${selectedChannelId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timers })
+    });
+    if (res.ok) { setTimerDirty(false); showToast('💾', 'Timers saved!'); }
+    else showToast('❌', 'Failed to save timers');
+  }
+
+  // Patch loadChannelCommands to also load timers
+  const _origLoad = loadChannelCommands;
+  loadChannelCommands = async function(channelId) {
+    await _origLoad(channelId);
+    await loadTimers(channelId);
+  };
 
   init();
 </script>
