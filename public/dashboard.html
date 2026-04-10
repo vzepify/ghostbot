@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<link rel="icon" type="image/png" href="/favicon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NeoBot — Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
@@ -238,50 +237,93 @@
     input, select { font-size: 16px; }
   }
 
-  /* Sidebar nav */
-  .hamburger {
-    background: none; border: none; cursor: pointer; padding: 8px;
-    display: flex; flex-direction: column; gap: 5px; border-radius: 6px;
-    transition: background 0.15s;
-  }
-  .hamburger:hover { background: var(--surface2); }
-  .hamburger span { display: block; width: 20px; height: 2px; background: var(--text); border-radius: 2px; transition: all 0.2s; }
+  /* ── Layout ── */
+  body { display: flex; flex-direction: column; }
 
-  .sidebar-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-    z-index: 50; opacity: 0; pointer-events: none; transition: opacity 0.2s;
-  }
-  .sidebar-overlay.open { opacity: 1; pointer-events: all; }
+  .layout { display: flex; flex: 1; min-height: calc(100vh - 60px); }
 
+  /* Sidebar */
   .sidebar {
-    position: fixed; left: 0; top: 0; bottom: 0; width: 240px;
+    width: 220px; flex-shrink: 0;
     background: var(--surface); border-right: 1px solid var(--border);
-    z-index: 51; transform: translateX(-100%); transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
-    display: flex; flex-direction: column; padding: 20px 0;
+    display: flex; flex-direction: column;
+    position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto;
   }
-  .sidebar.open { transform: translateX(0); }
 
-  .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 0 20px 20px; font-weight: 800; font-size: 18px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
-  .sidebar-brand span { font-size: 22px; }
-
-  .sidebar-section-label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; padding: 8px 20px 4px; }
+  .sidebar-group { padding: 16px 0 4px; }
+  .sidebar-group-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 4px 16px 8px; cursor: pointer; user-select: none;
+  }
+  .sidebar-group-label { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1.2px; }
+  .sidebar-chevron { color: var(--muted); font-size: 10px; transition: transform 0.2s; }
+  .sidebar-group.collapsed .sidebar-chevron { transform: rotate(-90deg); }
+  .sidebar-group.collapsed .sidebar-group-items { display: none; }
 
   .sidebar-item {
-    display: flex; align-items: center; gap: 12px;
-    padding: 11px 20px; font-family: var(--mono); font-size: 13px;
-    color: var(--muted); cursor: pointer; transition: all 0.1s;
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 16px; font-family: var(--sans); font-size: 13px; font-weight: 500;
+    color: var(--muted); cursor: pointer; transition: all 0.12s;
     border: none; background: none; width: 100%; text-align: left;
-    border-left: 3px solid transparent;
+    text-decoration: none; border-radius: 0; position: relative;
   }
-  .sidebar-item:hover { background: var(--surface2); color: var(--text); }
-  .sidebar-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(159,110,245,0.06); }
-  .sidebar-item .item-icon { font-size: 16px; width: 20px; text-align: center; }
+  .sidebar-item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: transparent; border-radius: 0 2px 2px 0; transition: background 0.15s; }
+  .sidebar-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+  .sidebar-item.active { color: var(--accent); background: rgba(159,110,245,0.08); }
+  .sidebar-item.active::before { background: var(--accent); }
 
-  .sidebar-bottom { margin-top: auto; border-top: 1px solid var(--border); padding-top: 12px; }
+  .sidebar-item-icon {
+    width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+    background: var(--surface2);
+  }
+  .sidebar-item.active .sidebar-item-icon { background: rgba(159,110,245,0.15); }
+
+  .sidebar-bottom { margin-top: auto; border-top: 1px solid var(--border); padding: 8px 0; }
+
+  /* Main content */
+  .main-content { flex: 1; min-width: 0; }
+
+  /* Top bar inside main */
+  .topbar {
+    height: 52px; background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; position: sticky; top: 60px; z-index: 5;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 10px; }
+  .topbar-page-title { font-weight: 700; font-size: 15px; }
+  .topbar-channel { display: flex; align-items: center; gap: 8px; }
+
+  .container { padding: 28px 28px 80px; max-width: 860px; }
+
+  /* Mobile overlay for sidebar */
+  .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 40; }
+  .sidebar-overlay.open { display: block; }
+  .hamburger {
+    display: none; background: none; border: none; cursor: pointer; padding: 8px;
+    flex-direction: column; gap: 5px; border-radius: 6px;
+  }
+  .hamburger span { display: block; width: 20px; height: 2px; background: var(--text); border-radius: 2px; }
 
   /* Section visibility */
   .page-section { display: none; }
   .page-section.visible { display: block; }
+
+  @media (max-width: 768px) {
+    .sidebar {
+      position: fixed; left: 0; top: 0; bottom: 0; height: 100vh;
+      z-index: 41; transform: translateX(-100%); transition: transform 0.25s ease;
+      top: 0;
+    }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-overlay { display: none; }
+    .sidebar-overlay.open { display: block; }
+    .hamburger { display: flex; }
+    .layout { flex-direction: column; }
+    .main-content { width: 100%; }
+    .topbar { top: 60px; }
+    .container { padding: 20px 14px 80px; }
+  }
 
   /* Sliders */
   .slider-field { display: flex; flex-direction: column; gap: 6px; }
@@ -303,22 +345,6 @@
 <body>
 
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
-<div class="sidebar" id="sidebar">
-  <div class="sidebar-brand"><span>⚡</span> NeoBot</div>
-  <div class="sidebar-section-label">Navigation</div>
-  <a href="/dashboard" class="sidebar-item active">
-    <span class="item-icon">⚡</span> Commands
-  </a>
-  <a href="/timers" class="sidebar-item">
-    <span class="item-icon">⏱️</span> Timers
-  </a>
-  <div class="sidebar-bottom">
-    <div class="sidebar-section-label">Links</div>
-    <a href="https://ko-fi.com/neobotxyz" target="_blank" class="sidebar-item">
-      <span class="item-icon">☕</span> Support on Ko-fi
-    </a>
-  </div>
-</div>
 
 <nav>
   <div style="display:flex;align-items:center;gap:12px;">
@@ -345,16 +371,61 @@
   </div>
 </nav>
 
-<div class="container">
+<div class="layout">
 
-  <!-- Active channel indicator -->
-  <div class="active-channel-bar" id="activeChannelBar">
-    <div style="display:flex;align-items:center;gap:10px;">
-      <span class="switcher-label">Managing</span>
-      <span id="activeChannelName" style="font-family:var(--mono);font-size:13px;color:var(--text);"></span>
-      <span class="role-badge" id="roleBadge"></span>
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-group" id="grp-main">
+    <div class="sidebar-group-header" onclick="toggleGroup('grp-main')">
+      <span class="sidebar-group-label">Main</span>
+      <span class="sidebar-chevron">▾</span>
+    </div>
+    <div class="sidebar-group-items">
+      <a href="/dashboard" class="sidebar-item active">
+        <span class="sidebar-item-icon">⚡</span> Commands
+      </a>
+      <a href="/timers" class="sidebar-item">
+        <span class="sidebar-item-icon">⏱️</span> Timers
+      </a>
     </div>
   </div>
+
+  <div class="sidebar-group" id="grp-channel">
+    <div class="sidebar-group-header" onclick="toggleGroup('grp-channel')">
+      <span class="sidebar-group-label">Channel</span>
+      <span class="sidebar-chevron">▾</span>
+    </div>
+    <div class="sidebar-group-items">
+      <div class="sidebar-item" style="cursor:default;" id="sidebarChannelName">
+        <span class="sidebar-item-icon">📺</span>
+        <span id="sidebarChannel" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">loading...</span>
+      </div>
+      <div class="sidebar-item" style="padding-left:16px;">
+        <span class="role-badge" id="roleBadge" style="margin:0;"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-bottom">
+    <a href="https://ko-fi.com/neobotxyz" target="_blank" class="sidebar-item">
+      <span class="sidebar-item-icon">☕</span> Support NeoBot
+    </a>
+  </div>
+</aside>
+
+<!-- Main content -->
+<div class="main-content">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-page-title">Commands</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span id="statusDotTopbar" style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);display:inline-block;"></span>
+      <span style="font-family:var(--mono);font-size:12px;color:var(--muted);" id="topbarStatus">Live</span>
+    </div>
+  </div>
+
+<div class="container">
 
   <div class="status-card">
     <div class="status-left">
@@ -441,7 +512,9 @@
     <div id="timerList"></div>
   </div>
   </div><!-- end section-timers -->
-</div>
+</div><!-- end container -->
+</div><!-- end main-content -->
+</div><!-- end layout -->
 
 <div class="toast" id="toast"><span id="toastIcon">✅</span><span id="toastMsg"></span></div>
 
@@ -510,8 +583,8 @@
     document.getElementById('modNotice').style.display = selectedChannelRole === 'mod' ? 'block' : 'none';
     const channels = userData ? (userData.channels || []) : [];
     const active = channels.find(c => c.id === selectedChannelId);
-    const nameEl = document.getElementById('activeChannelName');
-    if (nameEl) nameEl.textContent = active ? active.displayName : '';
+    const sidebarChan = document.getElementById('sidebarChannel');
+    if (sidebarChan) sidebarChan.textContent = active ? active.displayName : '';
   }
 
   async function switchChannel(channelId, role) {
@@ -541,16 +614,22 @@
     const dot = document.getElementById('statusDot');
     const text = document.getElementById('statusText');
     const btn = document.getElementById('toggleBtn');
+    const topDot = document.getElementById('statusDotTopbar');
+    const topText = document.getElementById('topbarStatus');
     const isOwn = selectedChannelId === userData.id;
     const active = isOwn ? userData.active : true;
 
     if (active) {
       dot.classList.remove('inactive');
       text.textContent = 'Bot is active in this channel';
+      if (topDot) { topDot.style.background = 'var(--green)'; topDot.style.boxShadow = '0 0 8px var(--green)'; }
+      if (topText) topText.textContent = 'Active';
       if (isOwn) { btn.textContent = 'Deactivate'; btn.className = 'btn btn-ghost'; }
     } else {
       dot.classList.add('inactive');
       text.textContent = 'Bot is not active';
+      if (topDot) { topDot.style.background = 'var(--muted)'; topDot.style.boxShadow = 'none'; }
+      if (topText) topText.textContent = 'Inactive';
       if (isOwn) { btn.textContent = 'Activate'; btn.className = 'btn btn-primary'; }
     }
 
@@ -689,12 +768,8 @@
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('sidebarOverlay').classList.remove('open');
   }
-  function showSection(name) {
-    document.querySelectorAll('.page-section').forEach(s => s.classList.remove('visible'));
-    document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
-    document.getElementById('section-' + name).classList.add('visible');
-    document.getElementById('nav-' + name).classList.add('active');
-    closeSidebar();
+  function toggleGroup(id) {
+    document.getElementById(id).classList.toggle('collapsed');
   }
 
   // ── Timers ──────────────────────────────────────────────────
