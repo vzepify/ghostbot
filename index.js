@@ -599,3 +599,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🌐 Server running on port ${PORT}`));
 
 startBot().catch(console.error);
+
+setInterval(runTimers, 30 * 1000); // runs every 30 seconds
