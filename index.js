@@ -439,7 +439,7 @@ client.on("message", async (channel, tags, message, self) => {
 });
 
 // ── OAuth ────────────────────────────────────────────────────
-const SCOPES = "chat:read chat:edit channel:manage:broadcast channel:bot user:read:moderated_channels";
+const SCOPES = "chat:read chat:edit channel:manage:broadcast channel:bot user:read:moderated_channels moderator:manage:banned_users moderator:manage:chat_messages";
 
 app.get("/auth/twitch", (req, res) => {
   const state = crypto.randomBytes(16).toString("hex");
