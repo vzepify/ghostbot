@@ -670,8 +670,9 @@
     updateStatusUI();
 
     // Update topbar — same as timers page
+    // Update topbar — same as timers page
     const ch = (userData.channels || []).find(c => c.id === channelId);
-    if (ch) {
+    console.log('switchChannel ch:', JSON.stringify(ch));  // ← add this
       const tbInfo = document.getElementById('topbarChannelInfo');
       if (tbInfo) tbInfo.style.display = 'flex';
       const tbAvatar = document.getElementById('topbarChannelAvatar');
