@@ -302,6 +302,7 @@ client.on("message", async (channel, tags, message, self) => {
   // Moderation filter — runs on ALL messages
   try {
     const mod = user.moderation || {};
+    console.log(`[${channelName}] mod filter: enabled=${mod.enabled} words=${JSON.stringify(mod.bannedWords)}`);
     if (mod.enabled !== false && mod.bannedWords && mod.bannedWords.length > 0) {
       const isExempt = isMod(tags) && mod.exemptMods !== false;
       const isExemptUser = (mod.exemptUsers || []).includes(tags.username?.toLowerCase());
