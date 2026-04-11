@@ -601,6 +601,19 @@
     buildChannelList(userData.channels || []);
     updateRoleBadge();
     updateStatusUI();
+
+    // Show topbar channel info on load
+    const tbInfo = document.getElementById('topbarChannelInfo');
+    if (tbInfo) {
+      tbInfo.style.display = 'flex';
+      const tbAvatar = document.getElementById('topbarChannelAvatar');
+      if (tbAvatar) tbAvatar.src = userData.profileImage || '';
+      const tbName = document.getElementById('topbarChannelName');
+      if (tbName) tbName.textContent = userData.displayName;
+      const tbChip = document.getElementById('topbarRoleChip');
+      if (tbChip) { tbChip.textContent = 'Your channel'; tbChip.className = 'topbar-role-chip chip-broadcaster'; }
+    }
+
     await loadChannelCommands(selectedChannelId);
 
     // Silently refresh modded channels in background
