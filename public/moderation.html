@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NeoBot — Timers</title>
+<title>NeoBot — Moderation</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #0d0d0f; --surface: #141416; --surface2: #1c1c20;
     --border: #2a2a30; --accent: #9f6ef5; --accent2: #f56ef5;
-    --green: #6ef5a0; --orange: #f5b46e; --red: #f56e6e;
+    --green: #6ef5a0; --orange: #f5b46e; --red: #f56e6e; --yellow: #f5e46e;
     --text: #e8e8f0; --muted: #6a6a7a;
     --mono: 'JetBrains Mono', monospace; --sans: 'Syne', sans-serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; display: flex; flex-direction: column; }
   body::before {
     content: ''; position: fixed; inset: 0;
     background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
@@ -23,62 +23,45 @@
 
   /* Nav */
   nav {
-    position: sticky; top: 0; z-index: 20;
+    position: sticky; top: 0; z-index: 10;
     background: var(--surface); border-bottom: 1px solid var(--border);
-    padding: 0 32px; height: 60px;
+    padding: 0 24px; height: 60px;
     display: flex; align-items: center; justify-content: space-between;
   }
-  .nav-left { display: flex; align-items: center; gap: 12px; }
   .nav-brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; }
-  .nav-brand span { font-size: 22px; }
-  .nav-right { display: flex; align-items: center; gap: 16px; }
+  .nav-right { display: flex; align-items: center; gap: 14px; }
   .avatar { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border); }
   .username { font-family: var(--mono); font-size: 13px; color: var(--muted); }
-  .btn-sm {
-    font-family: var(--sans); font-weight: 600; font-size: 12px;
-    padding: 6px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border);
-    background: transparent; color: var(--muted); transition: all 0.15s; text-decoration: none;
-  }
-  .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
-  .back-btn {
-    display: flex; align-items: center; gap: 6px;
-    font-family: var(--mono); font-size: 12px; color: var(--muted);
-    background: none; border: 1px solid var(--border); border-radius: 6px;
-    padding: 6px 12px; cursor: pointer; text-decoration: none; transition: all 0.15s;
-  }
-  .back-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-  /* Hamburger */
-  .hamburger {
-    background: none; border: none; cursor: pointer; padding: 8px;
-    display: flex; flex-direction: column; gap: 5px; border-radius: 6px; transition: background 0.15s;
-  }
-  .hamburger:hover { background: var(--surface2); }
+  .kofi-btn { display: inline-flex; align-items: center; gap: 6px; background: #ff5e5b; color: #fff; font-family: var(--sans); font-weight: 700; font-size: 12px; padding: 6px 14px; border-radius: 7px; text-decoration: none; transition: all 0.15s; white-space: nowrap; }
+  .kofi-btn:hover { background: #ff7875; transform: translateY(-1px); }
+  .profile-menu-wrap { position: relative; }
+  .profile-btn { display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px 5px 6px; cursor: pointer; color: var(--text); transition: all 0.15s; }
+  .profile-btn:hover { border-color: var(--accent); }
+  .profile-dropdown { position: absolute; top: calc(100% + 8px); right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; min-width: 200px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); z-index: 100; overflow: hidden; opacity: 0; transform: translateY(-8px); pointer-events: none; transition: all 0.15s; }
+  .profile-dropdown.open { opacity: 1; transform: translateY(0); pointer-events: all; }
+  .dropdown-label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; padding: 10px 14px 6px; }
+  .dropdown-item { display: flex; align-items: center; gap: 10px; padding: 9px 14px; font-family: var(--mono); font-size: 13px; color: var(--text); cursor: pointer; transition: background 0.1s; text-decoration: none; border: none; background: none; width: 100%; text-align: left; }
+  .dropdown-item:hover { background: var(--surface2); }
+  .dropdown-item.active { color: var(--accent); }
+  .dropdown-item .item-role { font-size: 10px; color: var(--muted); margin-left: auto; }
+  .dropdown-divider { height: 1px; background: var(--border); margin: 4px 0; }
+  .dropdown-logout { color: var(--muted); }
+  .dropdown-logout:hover { color: var(--red); }
+  .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; flex-direction: column; gap: 5px; border-radius: 6px; }
   .hamburger span { display: block; width: 20px; height: 2px; background: var(--text); border-radius: 2px; }
 
   /* Layout */
-  body { display: flex; flex-direction: column; }
   .layout { display: flex; flex: 1; min-height: calc(100vh - 60px); }
 
-  .sidebar {
-    width: 220px; flex-shrink: 0;
-    background: var(--surface); border-right: 1px solid var(--border);
-    display: flex; flex-direction: column;
-    position: sticky; top: 112px; height: calc(100vh - 112px); overflow-y: auto;
-  }
+  /* Sidebar */
+  .sidebar { width: 220px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: sticky; top: 112px; height: calc(100vh - 112px); overflow-y: auto; }
   .sidebar-group { padding: 16px 0 4px; }
   .sidebar-group-header { display: flex; align-items: center; justify-content: space-between; padding: 4px 16px 8px; cursor: pointer; user-select: none; }
   .sidebar-group-label { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1.2px; }
   .sidebar-chevron { color: var(--muted); font-size: 10px; transition: transform 0.2s; }
   .sidebar-group.collapsed .sidebar-chevron { transform: rotate(-90deg); }
   .sidebar-group.collapsed .sidebar-group-items { display: none; }
-  .sidebar-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 9px 16px; font-family: var(--sans); font-size: 13px; font-weight: 500;
-    color: var(--muted); cursor: pointer; transition: all 0.12s;
-    border: none; background: none; width: 100%; text-align: left;
-    text-decoration: none; position: relative;
-  }
+  .sidebar-item { display: flex; align-items: center; gap: 10px; padding: 9px 16px; font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; transition: all 0.12s; border: none; background: none; width: 100%; text-align: left; text-decoration: none; position: relative; }
   .sidebar-item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: transparent; border-radius: 0 2px 2px 0; transition: background 0.15s; }
   .sidebar-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
   .sidebar-item.active { color: var(--accent); background: rgba(159,110,245,0.08); }
@@ -86,124 +69,35 @@
   .sidebar-item-icon { width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; background: var(--surface2); }
   .sidebar-item.active .sidebar-item-icon { background: rgba(159,110,245,0.15); }
   .sidebar-bottom { margin-top: auto; border-top: 1px solid var(--border); padding: 8px 0; }
+  .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 40; }
+  .sidebar-overlay.open { display: block; }
 
+  /* Main */
   .main-content { flex: 1; min-width: 0; }
   .topbar { height: 52px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 24px; position: sticky; top: 0; z-index: 5; }
   .topbar-page-title { font-weight: 700; font-size: 15px; }
+  .container { padding: 28px 28px 80px; max-width: 900px; }
 
-  .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 40; }
-  .sidebar-overlay.open { display: block; }
-  .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; flex-direction: column; gap: 5px; border-radius: 6px; }
-  .hamburger span { display: block; width: 20px; height: 2px; background: var(--text); border-radius: 2px; }
+  /* Components */
+  .btn { font-family: var(--sans); font-weight: 600; font-size: 13px; border: none; border-radius: 8px; padding: 8px 18px; cursor: pointer; transition: all 0.15s; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #b385ff; transform: translateY(-1px); }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: transparent; color: var(--red); border: 1px solid transparent; padding: 6px 10px; font-size: 16px; }
+  .btn-danger:hover { background: rgba(245,110,110,0.1); border-color: var(--red); border-radius: 8px; }
 
-  @media (max-width: 768px) {
-    .sidebar { position: fixed; left: 0; top: 0; bottom: 0; height: 100vh; z-index: 41; transform: translateX(-100%); transition: transform 0.25s ease; }
-    .sidebar.open { transform: translateX(0); }
-    .sidebar-overlay.open { display: block; }
-    .hamburger { display: flex; }
-    .container { padding: 20px 14px 80px; }
-  }
-
-  /* Profile menu */
-  .profile-menu-wrap { position: relative; }
-  .profile-btn {
-    display: flex; align-items: center; gap: 8px;
-    background: transparent; border: 1px solid var(--border);
-    border-radius: 8px; padding: 5px 10px 5px 6px;
-    cursor: pointer; color: var(--text); transition: all 0.15s;
-  }
-  .profile-btn:hover { border-color: var(--accent); }
-  .profile-dropdown {
-    position: absolute; top: calc(100% + 8px); right: 0;
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 10px; min-width: 200px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-    z-index: 100; overflow: hidden;
-    opacity: 0; transform: translateY(-8px);
-    pointer-events: none; transition: all 0.15s;
-  }
-  .profile-dropdown.open { opacity: 1; transform: translateY(0); pointer-events: all; }
-  .dropdown-label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; padding: 10px 14px 6px; }
-  .dropdown-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 9px 14px; font-family: var(--mono); font-size: 13px;
-    color: var(--text); cursor: pointer; transition: background 0.1s;
-    text-decoration: none; border: none; background: none; width: 100%; text-align: left;
-  }
-  .dropdown-item:hover { background: var(--surface2); }
-  .dropdown-item.active { color: var(--accent); }
-  .dropdown-item .item-role { font-size: 10px; color: var(--muted); margin-left: auto; }
-  .dropdown-divider { height: 1px; background: var(--border); margin: 4px 0; }
-  .dropdown-logout { color: var(--muted); }
-  .dropdown-logout:hover { color: var(--red); }
-  .kofi-btn {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: #ff5e5b; color: #fff; font-family: var(--sans);
-    font-weight: 700; font-size: 12px; padding: 6px 14px;
-    border-radius: 7px; text-decoration: none; transition: all 0.15s; white-space: nowrap;
-  }
-  .kofi-btn:hover { background: #ff7875; transform: translateY(-1px); }
-
-  /* Layout */
-  .container { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; }
-
-  /* Page header */
-  .page-header { margin-bottom: 32px; animation: fadeDown 0.4s ease both; }
-  .page-header h2 { font-size: 26px; font-weight: 800; background: linear-gradient(90deg, var(--text), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 6px; }
-  .page-header p { font-family: var(--mono); font-size: 12px; color: var(--muted); }
-
-  /* Stats row */
-  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 28px; animation: fadeDown 0.4s 0.05s ease both; }
-  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
-  .stat-label { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-  .stat-value { font-size: 28px; font-weight: 800; }
-  .stat-value.green { color: var(--green); }
-  .stat-value.orange { color: var(--orange); }
-  .stat-value.purple { color: var(--accent); }
-
-  /* Add timer card */
-  .add-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin-bottom: 24px; animation: fadeDown 0.4s 0.1s ease both; }
-  .add-card-title { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
-
-  .type-toggle { display: flex; gap: 8px; margin-bottom: 20px; }
-  .type-btn {
-    flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border);
-    background: transparent; color: var(--muted); font-family: var(--mono); font-size: 12px;
-    cursor: pointer; transition: all 0.15s; font-weight: 600;
-  }
-  .type-btn.active-interval { border-color: var(--green); color: var(--green); background: rgba(110,245,160,0.08); }
-  .type-btn.active-countdown { border-color: var(--orange); color: var(--orange); background: rgba(245,180,110,0.08); }
-
-  .add-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
-  .add-grid-full { grid-column: 1 / -1; }
+  .section { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin-bottom: 20px; animation: fadeDown 0.4s ease both; }
+  .section-title { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+  .section-desc { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: -14px; margin-bottom: 20px; }
 
   .field { display: flex; flex-direction: column; gap: 6px; }
   label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
-  input, select, textarea { background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; color: var(--text); font-family: var(--mono); font-size: 13px; padding: 10px 12px; outline: none; transition: border-color 0.15s; width: 100%; resize: none; }
-  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
-  input::placeholder, textarea::placeholder { color: var(--muted); }
+  input, select, textarea { background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; color: var(--text); font-family: var(--mono); font-size: 13px; padding: 10px 12px; outline: none; transition: border-color 0.15s; width: 100%; }
+  input:focus, select:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--muted); }
+  select option { background: var(--surface2); }
 
-  .slider-field { display: flex; flex-direction: column; gap: 6px; }
-  .slider-header { display: flex; align-items: center; justify-content: space-between; }
-  .slider-header label { margin: 0; }
-  .slider-big-val { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--accent); }
-  .slider-wrap { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
-  .slider-wrap input[type=range] {
-    flex: 1; -webkit-appearance: none; appearance: none;
-    height: 6px; border-radius: 3px; outline: none; cursor: pointer; border: none; padding: 0;
-    background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--val, 16%), var(--border) var(--val, 16%));
-  }
-  .slider-wrap input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 20px; height: 20px;
-    border-radius: 50%; background: var(--accent); cursor: pointer;
-    box-shadow: 0 0 10px rgba(159,110,245,0.5);
-  }
-  .slider-marks { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 4px; }
-
-  .live-toggle-row { display: flex; align-items: center; justify-content: space-between; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; }
-  .live-toggle-info { font-family: var(--mono); font-size: 12px; }
-  .live-toggle-info strong { color: var(--text); display: block; margin-bottom: 2px; }
-  .live-toggle-info span { color: var(--muted); }
   .toggle-switch { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
   .toggle-switch input { opacity: 0; width: 0; height: 0; }
   .toggle-track { position: absolute; inset: 0; background: var(--border); border-radius: 20px; cursor: pointer; transition: background 0.2s; }
@@ -211,66 +105,63 @@
   .toggle-switch input:checked + .toggle-track { background: var(--accent); }
   .toggle-switch input:checked + .toggle-track::after { left: 22px; background: #fff; }
 
-  .btn-add-timer {
-    width: 100%; padding: 12px; border-radius: 10px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    color: #fff; border: none; font-family: var(--sans); font-weight: 700;
-    font-size: 14px; cursor: pointer; transition: all 0.15s;
+  /* Punishment selector */
+  .punishment-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .punishment-card {
+    border: 2px solid var(--border); border-radius: 10px; padding: 14px;
+    cursor: pointer; transition: all 0.15s; text-align: center;
+    background: var(--surface2);
   }
-  .btn-add-timer:hover { opacity: 0.9; transform: translateY(-1px); }
+  .punishment-card:hover { border-color: var(--muted); }
+  .punishment-card.selected-delete { border-color: var(--yellow); background: rgba(245,228,110,0.06); }
+  .punishment-card.selected-timeout { border-color: var(--orange); background: rgba(245,180,110,0.06); }
+  .punishment-card.selected-ban { border-color: var(--red); background: rgba(245,110,110,0.06); }
+  .punishment-icon { font-size: 24px; margin-bottom: 6px; }
+  .punishment-name { font-family: var(--mono); font-size: 12px; font-weight: 600; margin-bottom: 3px; }
+  .punishment-desc { font-family: var(--mono); font-size: 10px; color: var(--muted); }
 
-  /* Timer list */
-  .timers-list { display: flex; flex-direction: column; gap: 12px; animation: fadeDown 0.4s 0.15s ease both; }
-  .list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-  .list-title { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-
-  .timer-card-full {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 14px; overflow: hidden; transition: border-color 0.2s;
+  .timeout-options { display: none; margin-top: 14px; }
+  .timeout-options.show { display: block; }
+  .timeout-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+  .timeout-chip {
+    padding: 6px 14px; border-radius: 20px; font-family: var(--mono); font-size: 12px;
+    border: 1px solid var(--border); background: transparent; color: var(--muted);
+    cursor: pointer; transition: all 0.15s;
   }
-  .timer-card-full:hover { border-color: #3a3a45; }
-  .timer-card-full.editing { border-color: var(--accent); }
+  .timeout-chip:hover { border-color: var(--orange); color: var(--orange); }
+  .timeout-chip.selected { border-color: var(--orange); color: var(--orange); background: rgba(245,180,110,0.1); }
+  .timeout-custom { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .timeout-custom input { width: 80px; }
+  .timeout-custom span { font-family: var(--mono); font-size: 12px; color: var(--muted); }
 
-  .timer-top { padding: 18px 20px; display: flex; align-items: center; gap: 14px; }
-  .timer-icon-wrap {
-    width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center; font-size: 20px;
+  /* Word list */
+  .word-input-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .word-input-row input { flex: 1; }
+  .word-tags { display: flex; flex-wrap: wrap; gap: 6px; min-height: 40px; }
+  .word-tag {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(245,110,110,0.1); border: 1px solid rgba(245,110,110,0.3);
+    border-radius: 6px; padding: 4px 10px;
+    font-family: var(--mono); font-size: 12px; color: var(--red);
   }
-  .icon-interval { background: rgba(110,245,160,0.1); }
-  .icon-countdown { background: rgba(245,180,110,0.1); }
-  .timer-info { flex: 1; min-width: 0; }
-  .timer-info-name { font-weight: 700; font-size: 15px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .timer-info-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
-  .meta-chip { display: flex; align-items: center; gap: 4px; }
-  .timer-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .word-tag.wildcard { background: rgba(245,228,110,0.1); border-color: rgba(245,228,110,0.3); color: var(--yellow); }
+  .word-tag button { background: none; border: none; color: inherit; cursor: pointer; font-size: 14px; padding: 0; line-height: 1; opacity: 0.6; }
+  .word-tag button:hover { opacity: 1; }
+  .word-empty { font-family: var(--mono); font-size: 12px; color: var(--muted); padding: 10px 0; }
 
-  .timer-message-preview { padding: 0 20px 16px; font-family: var(--mono); font-size: 12px; color: var(--muted); background: var(--surface); border-top: 1px solid var(--border); padding-top: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .timer-message-preview::before { content: '💬 '; }
+  /* Settings row */
+  .setting-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-info strong { font-size: 14px; display: block; margin-bottom: 3px; }
+  .setting-info span { font-family: var(--mono); font-size: 12px; color: var(--muted); }
 
-  .timer-edit-panel { background: var(--surface2); padding: 20px; border-top: 1px solid var(--border); display: none; }
-  .timer-edit-panel.open { display: block; }
-  .edit-panel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
-  .edit-panel-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+  /* Response message */
+  .response-preview { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .response-preview span { color: var(--accent); }
 
-  .btn { font-family: var(--sans); font-weight: 600; font-size: 13px; border: none; border-radius: 8px; padding: 8px 18px; cursor: pointer; transition: all 0.15s; }
-  .btn-primary { background: var(--accent); color: #fff; }
-  .btn-primary:hover { background: #b385ff; }
-  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
-  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
-  .btn-danger { background: transparent; color: var(--red); border: 1px solid transparent; padding: 8px 12px; font-size: 16px; }
-  .btn-danger:hover { background: rgba(245,110,110,0.1); border-color: var(--red); border-radius: 8px; }
-
-  .type-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .badge-interval { background: rgba(110,245,160,0.12); color: var(--green); }
-  .badge-countdown { background: rgba(245,180,110,0.12); color: var(--orange); }
-  .badge-live { background: rgba(110,245,160,0.12); color: var(--green); }
-  .badge-always { background: rgba(106,106,122,0.15); color: var(--muted); }
-
-  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); font-family: var(--mono); font-size: 13px; border: 1px dashed var(--border); border-radius: 14px; }
-  .empty-state .ei { font-size: 40px; margin-bottom: 14px; }
-
-  .save-banner { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--accent); border-radius: 12px; padding: 12px 20px; display: flex; align-items: center; gap: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); z-index: 90; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
-  .save-banner.show { opacity: 1; pointer-events: all; }
+  /* Save banner */
+  .save-banner { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--surface); border: 1px solid var(--accent); border-radius: 12px; padding: 12px 20px; display: flex; align-items: center; gap: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); z-index: 90; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+  .save-banner.show { transform: translateX(-50%) translateY(0); }
   .save-banner-text { font-family: var(--mono); font-size: 13px; color: var(--muted); }
 
   .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 11px 18px; font-family: var(--mono); font-size: 13px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); z-index: 100; display: flex; align-items: center; gap: 8px; }
@@ -328,16 +219,16 @@
   }
   .chip-broadcaster { background: rgba(245,110,245,0.12); color: var(--accent2); }
   .chip-mod { background: rgba(159,110,245,0.15); color: var(--accent); }
-  @keyframes fadeDown { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
-  @media (max-width: 600px) {
-    nav { padding: 0 16px; }
+  @media (max-width: 768px) {
+    .sidebar { position: fixed; left: 0; top: 0; bottom: 0; height: 100vh; z-index: 41; transform: translateX(-100%); transition: transform 0.25s ease; }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-overlay.open { display: block; }
+    .hamburger { display: flex; }
+    .container { padding: 20px 14px 80px; }
+    .punishment-cards { grid-template-columns: 1fr; }
     .username { display: none; }
-    .container { padding: 20px 12px 80px; }
-    .stats-row { grid-template-columns: 1fr 1fr; }
-    .stats-row .stat-card:last-child { grid-column: 1 / -1; }
-    .add-grid { grid-template-columns: 1fr; }
-    .edit-panel-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -371,13 +262,13 @@
 <div class="layout">
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-group">
-    <div class="sidebar-group-header" onclick="toggleGroup('grp-main-t')">
+    <div class="sidebar-group-header" onclick="this.parentElement.classList.toggle('collapsed')">
       <span class="sidebar-group-label">Main</span>
       <span class="sidebar-chevron">▾</span>
     </div>
-    <div class="sidebar-group-items" id="grp-main-t">
+    <div class="sidebar-group-items">
       <a href="/dashboard" class="sidebar-item"><span class="sidebar-item-icon">⚡</span> Commands</a>
-      <a href="/timers" class="sidebar-item active"><span class="sidebar-item-icon">⏱️</span> Timers</a>
+      <a href="/timers" class="sidebar-item"><span class="sidebar-item-icon">⏱️</span> Timers</a>
     </div>
   </div>
   <div class="sidebar-group">
@@ -386,7 +277,7 @@
       <span class="sidebar-chevron">▾</span>
     </div>
     <div class="sidebar-group-items">
-      <a href="/moderation" class="sidebar-item"><span class="sidebar-item-icon">🚫</span> Banned words</a>
+      <a href="/moderation" class="sidebar-item active"><span class="sidebar-item-icon">🚫</span> Banned words</a>
     </div>
   </div>
   <div class="sidebar-bottom">
@@ -396,13 +287,14 @@
 
 <div class="main-content">
 <div class="topbar">
-  <span class="topbar-page-title">Timers</span>
+  <span class="topbar-page-title">🚫 Banned Words</span>
   <div class="topbar-channel-info" id="topbarChannelInfo" style="display:none;">
     <img class="topbar-channel-avatar" id="topbarChannelAvatar" src="" alt="">
     <span class="topbar-channel-name" id="topbarChannelName"></span>
     <span class="topbar-role-chip" id="topbarRoleChip"></span>
   </div>
 </div>
+
   <!-- Scope warning banner -->
   <div class="scope-banner" id="scopeBanner">
     <div class="scope-banner-left">
@@ -416,104 +308,146 @@
   </div>
 <div class="container">
 
-  <div class="page-header">
-    <h2>⏱️ Timers</h2>
-    <p>// Auto-post messages on a schedule or countdown</p>
-  </div>
-
-  <div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-label">Total timers</div>
-      <div class="stat-value purple" id="statTotal">0</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Interval timers</div>
-      <div class="stat-value green" id="statInterval">0</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Countdown timers</div>
-      <div class="stat-value orange" id="statCountdown">0</div>
-    </div>
-  </div>
-
-  <div class="add-card">
-    <div class="add-card-title">// New timer</div>
-
-    <div class="type-toggle">
-      <button class="type-btn active-interval" id="typeInterval" onclick="setType('interval')">🔁 Interval — repeats every X minutes</button>
-      <button class="type-btn" id="typeCountdown" onclick="setType('countdown')">⏳ Countdown — fires once after X minutes</button>
-    </div>
-
-    <div class="add-grid">
-      <div class="field">
-        <label>Timer name</label>
-        <input type="text" id="newName" placeholder="Social links reminder" />
-      </div>
-      <div class="slider-field">
-        <div class="slider-header">
-          <label id="newMinLabel">Repeat every</label>
-          <span class="slider-big-val"><span id="newMinVal">30</span>m</span>
-        </div>
-        <div class="slider-wrap">
-          <input type="range" id="newMin" min="1" max="180" value="30" oninput="updateNewSlider()" style="--val:16%" />
-        </div>
-        <div class="slider-marks"><span>1m</span><span>30m</span><span>1hr</span><span>2hr</span><span>3hr</span></div>
-      </div>
-      <div class="field add-grid-full">
-        <label>Message to post in chat</label>
-        <input type="text" id="newMsg" placeholder="Follow me on Twitter! 🐦 twitter.com/..." />
-      </div>
-    </div>
-
-    <div class="live-toggle-row">
-      <div class="live-toggle-info">
-        <strong>Live only</strong>
-        <span>Only fire this timer when the channel is streaming</span>
+  <!-- Global toggle -->
+  <div class="section" style="animation-delay:0s;">
+    <div class="setting-row" style="padding-top:0;">
+      <div class="setting-info">
+        <strong>Word filter</strong>
+        <span>Automatically moderate messages containing banned words</span>
       </div>
       <label class="toggle-switch">
-        <input type="checkbox" id="newLiveOnly" checked>
+        <input type="checkbox" id="filterEnabled" checked onchange="setDirty()">
         <span class="toggle-track"></span>
       </label>
     </div>
-
-    <button class="btn-add-timer" onclick="addTimer()">+ Add Timer</button>
+    <div class="setting-row">
+      <div class="setting-info">
+        <strong>Exempt mods</strong>
+        <span>Moderators and the broadcaster are never filtered</span>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="exemptMods" checked onchange="setDirty()">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+    <div class="setting-row" style="padding-bottom:0;">
+      <div class="setting-info">
+        <strong>Case insensitive</strong>
+        <span>Match regardless of capitalization (recommended)</span>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="caseInsensitive" checked onchange="setDirty()">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
   </div>
 
-  <div class="timers-list">
-    <div class="list-header">
-      <span class="list-title">// Your timers</span>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <span class="keybind-hint" style="font-family:var(--mono);font-size:11px;color:var(--muted);display:inline-flex;align-items:center;gap:5px;"><span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:10px;">Ctrl</span>+<span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:10px;">S</span> to save</span>
-        <button class="btn btn-primary" id="saveBtn" onclick="saveTimers()" style="display:none;">Save Changes</button>
+  <!-- Punishment -->
+  <div class="section" style="animation-delay:0.05s;">
+    <div class="section-title">// Punishment</div>
+    <div class="section-desc">Choose what happens when a banned word is detected</div>
+
+    <div class="punishment-cards">
+      <div class="punishment-card selected-delete" id="pc-delete" onclick="selectPunishment('delete')">
+        <div class="punishment-icon">🗑️</div>
+        <div class="punishment-name">Delete</div>
+        <div class="punishment-desc">Remove the message only</div>
+      </div>
+      <div class="punishment-card" id="pc-timeout" onclick="selectPunishment('timeout')">
+        <div class="punishment-icon">⏱️</div>
+        <div class="punishment-name">Timeout</div>
+        <div class="punishment-desc">Silence user temporarily</div>
+      </div>
+      <div class="punishment-card" id="pc-ban" onclick="selectPunishment('ban')">
+        <div class="punishment-icon">🔨</div>
+        <div class="punishment-name">Ban</div>
+        <div class="punishment-desc">Permanently ban the user</div>
       </div>
     </div>
-    <div id="timerList"></div>
+
+    <div class="timeout-options" id="timeoutOptions">
+      <label style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:8px;">Timeout duration</label>
+      <div class="timeout-grid">
+        <button class="timeout-chip selected" onclick="selectTimeout(60)">1 min</button>
+        <button class="timeout-chip" onclick="selectTimeout(300)">5 min</button>
+        <button class="timeout-chip" onclick="selectTimeout(600)">10 min</button>
+        <button class="timeout-chip" onclick="selectTimeout(1800)">30 min</button>
+        <button class="timeout-chip" onclick="selectTimeout(3600)">1 hour</button>
+        <button class="timeout-chip" onclick="selectTimeout(86400)">1 day</button>
+      </div>
+      <div class="timeout-custom">
+        <input type="number" id="customTimeout" min="1" placeholder="Custom" oninput="setDirty()" />
+        <span>seconds</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Response message -->
+  <div class="section" style="animation-delay:0.1s;">
+    <div class="section-title">// Response message</div>
+    <div class="section-desc">Optional message to post when a word is caught. Leave blank for silent action.</div>
+    <div class="field">
+      <label>Message (use {user} for the offender's name)</label>
+      <input type="text" id="responseMsg" placeholder="@{user}, that word is not allowed here." oninput="setDirty()" />
+    </div>
+    <div class="response-preview" id="responsePreview">
+      Preview: <span>@SomeUser, that word is not allowed here.</span>
+    </div>
+  </div>
+
+  <!-- Banned words -->
+  <div class="section" style="animation-delay:0.15s;">
+    <div class="section-title">// Banned words & phrases</div>
+    <div class="section-desc">Add exact words or use * as a wildcard (e.g. <span style="color:var(--yellow);font-family:var(--mono);">bad*</span> matches "badword", "badly")</div>
+
+    <div class="word-input-row">
+      <input type="text" id="wordInput" placeholder="Type a word or phrase and press Enter..." onkeydown="handleWordKey(event)" />
+      <button class="btn btn-primary" onclick="addWord()">+ Add</button>
+    </div>
+    <div class="word-tags" id="wordTags">
+      <span class="word-empty">No banned words yet</span>
+    </div>
+  </div>
+
+  <!-- Exempt users -->
+  <div class="section" style="animation-delay:0.2s;">
+    <div class="section-title">// Exempt users</div>
+    <div class="section-desc">These users will never be filtered regardless of what they say</div>
+    <div class="word-input-row">
+      <input type="text" id="exemptInput" placeholder="Username to exempt..." onkeydown="handleExemptKey(event)" />
+      <button class="btn btn-ghost" onclick="addExempt()">+ Add</button>
+    </div>
+    <div class="word-tags" id="exemptTags">
+      <span class="word-empty">No exempt users</span>
+    </div>
   </div>
 
 </div>
-</div><!-- end main-content -->
-</div><!-- end layout -->
+</div>
+</div>
 
 <div class="save-banner" id="saveBanner">
   <span class="save-banner-text">You have unsaved changes</span>
-  <button class="btn btn-primary" onclick="saveTimers()">Save</button>
+  <span style="font-family:var(--mono);font-size:11px;color:var(--muted);display:inline-flex;align-items:center;gap:5px;"><span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:10px;">Ctrl</span>+<span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:10px;">S</span></span>
+  <button class="btn btn-primary" onclick="saveModeration()">Save</button>
 </div>
 
-<div class="toast" id="toast"><span id="toastIcon">made with ♡ by NeoNarwhai</span><span id="toastMsg"></span></div>
+<div class="toast" id="toast"><span id="toastIcon">✅</span><span id="toastMsg"></span></div>
 
 <script>
   let userData = null;
-  let timers = [];
-  let dirty = false;
   let selectedChannelId = null;
-  let newType = 'interval';
+  let selectedPunishment = 'delete';
+  let selectedTimeoutSecs = 60;
+  let bannedWords = [];
+  let exemptUsers = [];
+  let dirty = false;
 
   async function init() {
     const res = await fetch('/api/me');
     if (!res.ok) { location.href = '/'; return; }
     userData = await res.json();
     selectedChannelId = userData.id;
-
     document.getElementById('navAvatar').src = userData.profileImage;
     document.getElementById('navUsername').textContent = userData.displayName;
     // Set topbar channel info
@@ -527,9 +461,8 @@
       const tbChip = document.getElementById('topbarRoleChip');
       if (tbChip) { tbChip.textContent = 'Your channel'; tbChip.className = 'topbar-role-chip chip-broadcaster'; }
     }
-
     buildChannelList(userData.channels || []);
-    await loadTimers(selectedChannelId);
+    await loadModeration(selectedChannelId);
 
     fetch('/api/refresh-channels', { method: 'POST' })
       .then(r => r.json())
@@ -545,11 +478,9 @@
   }
 
   function buildChannelList(channels) {
-    const list = document.getElementById('channelList');
-    list.innerHTML = channels.map(c => `
+    document.getElementById('channelList').innerHTML = channels.map(c => `
       <button class="dropdown-item ${c.id === selectedChannelId ? 'active' : ''}" onclick="switchChannel('${c.id}')">
-        ${c.displayName}
-        <span class="item-role">${c.role === 'broadcaster' ? 'Your channel' : 'Mod'}</span>
+        ${c.displayName} <span class="item-role">${c.role === 'broadcaster' ? 'Your channel' : 'Mod'}</span>
       </button>
     `).join('');
   }
@@ -569,225 +500,155 @@
       const tbChip = document.getElementById('topbarRoleChip');
       if (tbChip) { tbChip.textContent = ch.role === 'broadcaster' ? 'Your channel' : 'Moderating'; tbChip.className = `topbar-role-chip ${ch.role === 'broadcaster' ? 'chip-broadcaster' : 'chip-mod'}`; }
     }
-    await loadTimers(id);
+    await loadModeration(id);
   }
 
-  async function loadTimers(channelId) {
-    const res = await fetch(`/api/timers/${channelId}`);
+  async function loadModeration(channelId) {
+    const res = await fetch(`/api/moderation/${channelId}`);
     if (!res.ok) return;
     const data = await res.json();
-    timers = data.timers || [];
+    const cfg = data.moderation || {};
+
+    document.getElementById('filterEnabled').checked = cfg.enabled !== false;
+    document.getElementById('exemptMods').checked = cfg.exemptMods !== false;
+    document.getElementById('caseInsensitive').checked = cfg.caseInsensitive !== false;
+    document.getElementById('responseMsg').value = cfg.responseMsg || '';
+
+    bannedWords = cfg.bannedWords || [];
+    exemptUsers = cfg.exemptUsers || [];
+
+    selectPunishment(cfg.punishment || 'delete');
+    if (cfg.punishment === 'timeout') selectTimeout(cfg.timeoutSeconds || 60);
+
+    renderWords();
+    renderExempts();
+    updateResponsePreview();
     dirty = false;
     document.getElementById('saveBanner').classList.remove('show');
-    document.getElementById('saveBtn').style.display = 'none';
-    renderTimers();
-    updateStats();
   }
 
-  function updateStats() {
-    document.getElementById('statTotal').textContent = timers.length;
-    document.getElementById('statInterval').textContent = timers.filter(t => t.type === 'interval').length;
-    document.getElementById('statCountdown').textContent = timers.filter(t => t.type === 'countdown').length;
-  }
-
-  function setType(type) {
-    newType = type;
-    document.getElementById('typeInterval').className = 'type-btn' + (type === 'interval' ? ' active-interval' : '');
-    document.getElementById('typeCountdown').className = 'type-btn' + (type === 'countdown' ? ' active-countdown' : '');
-    document.getElementById('newMinLabel').textContent = type === 'interval' ? 'Repeat every' : 'Countdown duration';
-  }
-
-  function updateNewSlider() {
-    const slider = document.getElementById('newMin');
-    const val = parseInt(slider.value);
-    const pct = Math.round((val - 1) / 179 * 100);
-    slider.style.setProperty('--val', pct + '%');
-    document.getElementById('newMinVal').textContent = val;
-  }
-
-  function updateEditSlider(i) {
-    const slider = document.getElementById(`emin-${i}`);
-    const val = parseInt(slider.value);
-    const pct = Math.round((val - 1) / 179 * 100);
-    slider.style.setProperty('--val', pct + '%');
-    document.getElementById(`emin-val-${i}`).textContent = val + 'm';
-  }
-
-  function addTimer() {
-    const name = document.getElementById('newName').value.trim();
-    const msg = document.getElementById('newMsg').value.trim();
-    const mins = parseInt(document.getElementById('newMin').value) || 30;
-    const liveOnly = document.getElementById('newLiveOnly').checked;
-    if (!name || !msg) { showToast('⚠️', 'Fill in name and message'); return; }
-    const id = 'timer_' + Date.now();
-    timers.push({
-      id, name, message: msg, type: newType,
-      intervalMinutes: newType === 'interval' ? mins : 30,
-      countdownMinutes: newType === 'countdown' ? mins : 60,
-      liveOnly, enabled: true
+  function selectPunishment(type) {
+    selectedPunishment = type;
+    ['delete','timeout','ban'].forEach(t => {
+      const el = document.getElementById(`pc-${t}`);
+      el.className = 'punishment-card' + (t === type ? ` selected-${t}` : '');
     });
-    document.getElementById('newName').value = '';
-    document.getElementById('newMsg').value = '';
-    setDirty(true);
-    renderTimers();
-    updateStats();
-    showToast('✅', `Added: ${name}`);
+    document.getElementById('timeoutOptions').classList.toggle('show', type === 'timeout');
+    setDirty();
   }
 
-  function renderTimers() {
-    const list = document.getElementById('timerList');
-    if (!timers.length) {
-      list.innerHTML = `<div class="empty-state"><div class="ei">⏱️</div>No timers yet — add one above</div>`;
-      return;
-    }
-    list.innerHTML = timers.map((t, i) => {
-      const mins = t.type === 'interval' ? (t.intervalMinutes || 30) : (t.countdownMinutes || 60);
-      const dur = mins >= 60 ? `${(mins/60).toFixed(1).replace('.0','')}h` : `${mins}m`;
-      return `
-      <div class="timer-card-full" id="tcrd-${i}">
-        <div class="timer-top">
-          <div class="timer-icon-wrap icon-${t.type}">${t.type === 'interval' ? '🔁' : '⏳'}</div>
-          <div class="timer-info">
-            <div class="timer-info-name">${esc(t.name)}</div>
-            <div class="timer-info-meta">
-              <span class="meta-chip"><span class="type-badge badge-${t.type}">${t.type}</span></span>
-              <span class="meta-chip">🕐 ${dur}</span>
-              <span class="meta-chip"><span class="type-badge ${t.liveOnly ? 'badge-live' : 'badge-always'}">${t.liveOnly ? 'Live only' : 'Always'}</span></span>
-            </div>
-          </div>
-          <div class="timer-actions">
-            <label class="toggle-switch"><input type="checkbox" ${t.enabled !== false ? 'checked' : ''} onchange="toggleTimer(${i},this.checked)"><span class="toggle-track"></span></label>
-            <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px;" onclick="toggleEdit(${i})">Edit</button>
-            ${t.type === 'countdown' ? `<button class="btn btn-ghost" style="padding:6px 10px;font-size:14px;" onclick="resetCountdown(${i})" title="Reset countdown">↺</button>` : ''}
-            <button class="btn btn-danger" onclick="deleteTimer(${i})">×</button>
-          </div>
-        </div>
-        <div class="timer-message-preview">${esc(t.message)}</div>
-        <div class="timer-edit-panel" id="tedit-${i}">
-          <div class="edit-panel-grid">
-            <div class="field"><label>Name</label><input type="text" id="en-${i}" value="${esc(t.name)}" /></div>
-            <div class="field"><label>Type</label>
-              <select id="et-${i}" onchange="renderTimerTypeLabel(${i})">
-                <option value="interval" ${t.type==='interval'?'selected':''}>🔁 Interval</option>
-                <option value="countdown" ${t.type==='countdown'?'selected':''}>⏳ Countdown</option>
-              </select>
-            </div>
-            <div class="slider-field" style="grid-column:1/-1;">
-              <div class="slider-header">
-                <label id="elabel-${i}">${t.type === 'interval' ? 'Repeat every' : 'Countdown duration'}</label>
-                <span class="slider-big-val"><span id="emin-val-${i}">${mins}m</span></span>
-              </div>
-              <div class="slider-wrap">
-                <input type="range" id="emin-${i}" min="1" max="180" value="${mins}" oninput="updateEditSlider(${i})"
-                  style="--val:${Math.round((mins-1)/179*100)}%" />
-              </div>
-              <div class="slider-marks"><span>1m</span><span>30m</span><span>1hr</span><span>2hr</span><span>3hr</span></div>
-            </div>
-            <div class="field" style="grid-column:1/-1;"><label>Message</label><input type="text" id="em-${i}" value="${esc(t.message)}" /></div>
-          </div>
-          <div class="live-toggle-row" style="margin-bottom:0;">
-            <div class="live-toggle-info">
-              <strong>Live only</strong>
-              <span>Only fire when the channel is streaming</span>
-            </div>
-            <label class="toggle-switch"><input type="checkbox" id="elive-${i}" ${t.liveOnly?'checked':''}><span class="toggle-track"></span></label>
-          </div>
-          <div class="edit-panel-actions">
-            <button class="btn btn-ghost" onclick="toggleEdit(${i})">Cancel</button>
-            <button class="btn btn-primary" onclick="saveEdit(${i})">Save changes</button>
-          </div>
-        </div>
+  function selectTimeout(secs) {
+    selectedTimeoutSecs = secs;
+    document.querySelectorAll('.timeout-chip').forEach(c => c.classList.remove('selected'));
+    const chips = { 60:'1 min', 300:'5 min', 600:'10 min', 1800:'30 min', 3600:'1 hour', 86400:'1 day' };
+    document.querySelectorAll('.timeout-chip').forEach(c => {
+      if (chips[secs] && c.textContent === chips[secs]) c.classList.add('selected');
+    });
+    document.getElementById('customTimeout').value = Object.keys(chips).includes(String(secs)) ? '' : secs;
+    setDirty();
+  }
+
+  function updateResponsePreview() {
+    const msg = document.getElementById('responseMsg').value || '@{user}, that word is not allowed here.';
+    document.getElementById('responsePreview').innerHTML = `Preview: <span>${esc(msg.replace('{user}', 'SomeUser'))}</span>`;
+  }
+
+  document.getElementById('responseMsg').addEventListener('input', updateResponsePreview);
+
+  function handleWordKey(e) { if (e.key === 'Enter') addWord(); }
+  function handleExemptKey(e) { if (e.key === 'Enter') addExempt(); }
+
+  function addWord() {
+    const val = document.getElementById('wordInput').value.trim().toLowerCase();
+    if (!val) return;
+    if (bannedWords.includes(val)) { showToast('⚠️', 'Already in list'); return; }
+    bannedWords.push(val);
+    document.getElementById('wordInput').value = '';
+    renderWords();
+    setDirty();
+  }
+
+  function removeWord(i) {
+    bannedWords.splice(i, 1);
+    renderWords();
+    setDirty();
+  }
+
+  function addExempt() {
+    const val = document.getElementById('exemptInput').value.trim().toLowerCase();
+    if (!val) return;
+    if (exemptUsers.includes(val)) { showToast('⚠️', 'Already exempt'); return; }
+    exemptUsers.push(val);
+    document.getElementById('exemptInput').value = '';
+    renderExempts();
+    setDirty();
+  }
+
+  function removeExempt(i) {
+    exemptUsers.splice(i, 1);
+    renderExempts();
+    setDirty();
+  }
+
+  function renderWords() {
+    const el = document.getElementById('wordTags');
+    if (!bannedWords.length) { el.innerHTML = '<span class="word-empty">No banned words yet</span>'; return; }
+    el.innerHTML = bannedWords.map((w, i) => `
+      <div class="word-tag ${w.includes('*') ? 'wildcard' : ''}">
+        ${esc(w)} <button onclick="removeWord(${i})">×</button>
       </div>
-    `}).join('');
+    `).join('');
   }
 
-  function renderTimerTypeLabel(i) {
-    const type = document.getElementById(`et-${i}`).value;
-    document.getElementById(`elabel-${i}`).textContent = type === 'interval' ? 'Repeat every' : 'Countdown duration';
+  function renderExempts() {
+    const el = document.getElementById('exemptTags');
+    if (!exemptUsers.length) { el.innerHTML = '<span class="word-empty">No exempt users</span>'; return; }
+    el.innerHTML = exemptUsers.map((u, i) => `
+      <div class="word-tag" style="color:var(--green);background:rgba(110,245,160,0.08);border-color:rgba(110,245,160,0.2);">
+        @${esc(u)} <button onclick="removeExempt(${i})">×</button>
+      </div>
+    `).join('');
   }
 
-  function toggleEdit(i) {
-    const panel = document.getElementById(`tedit-${i}`);
-    const card = document.getElementById(`tcrd-${i}`);
-    const isOpen = panel.classList.contains('open');
-    document.querySelectorAll('.timer-edit-panel.open').forEach(p => p.classList.remove('open'));
-    document.querySelectorAll('.timer-card-full.editing').forEach(c => c.classList.remove('editing'));
-    if (!isOpen) { panel.classList.add('open'); card.classList.add('editing'); }
+  function setDirty() {
+    dirty = true;
+    document.getElementById('saveBanner').classList.add('show');
   }
 
-  function saveEdit(i) {
-    const type = document.getElementById(`et-${i}`).value;
-    const mins = parseInt(document.getElementById(`emin-${i}`).value) || 30;
-    timers[i] = {
-      ...timers[i],
-      name: document.getElementById(`en-${i}`).value.trim(),
-      message: document.getElementById(`em-${i}`).value.trim(),
-      type,
-      intervalMinutes: type === 'interval' ? mins : timers[i].intervalMinutes,
-      countdownMinutes: type === 'countdown' ? mins : timers[i].countdownMinutes,
-      liveOnly: document.getElementById(`elive-${i}`).checked,
+  async function saveModeration() {
+    const customSecs = parseInt(document.getElementById('customTimeout').value);
+    const moderation = {
+      enabled: document.getElementById('filterEnabled').checked,
+      exemptMods: document.getElementById('exemptMods').checked,
+      caseInsensitive: document.getElementById('caseInsensitive').checked,
+      responseMsg: document.getElementById('responseMsg').value.trim(),
+      punishment: selectedPunishment,
+      timeoutSeconds: customSecs || selectedTimeoutSecs,
+      bannedWords,
+      exemptUsers,
     };
-    setDirty(true);
-    renderTimers();
-    updateStats();
-    showToast('✅', 'Timer updated');
-  }
-
-  function deleteTimer(i) {
-    const name = timers[i].name;
-    timers.splice(i, 1);
-    setDirty(true);
-    renderTimers();
-    updateStats();
-    showToast('🗑️', `Deleted: ${name}`);
-  }
-
-  function toggleTimer(i, val) { timers[i].enabled = val; setDirty(true); }
-
-  async function resetCountdown(i) {
-    await fetch(`/api/timers/${selectedChannelId}/reset/${timers[i].id}`, { method: 'POST' });
-    showToast('↺', `Countdown reset: ${timers[i].name}`);
-  }
-
-  function setDirty(val) {
-    dirty = val;
-    document.getElementById('saveBanner').classList.toggle('show', val);
-    document.getElementById('saveBtn').style.display = val ? '' : 'none';
-  }
-
-  async function saveTimers() {
-    const res = await fetch(`/api/timers/${selectedChannelId}`, {
+    const res = await fetch(`/api/moderation/${selectedChannelId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ timers })
+      body: JSON.stringify({ moderation })
     });
-    if (res.ok) { setDirty(false); showToast('💾', 'Timers saved!'); }
-    else showToast('❌', 'Failed to save');
+    if (res.ok) {
+      dirty = false;
+      document.getElementById('saveBanner').classList.remove('show');
+      showToast('✅', 'Moderation settings saved!');
+    } else {
+      showToast('❌', 'Failed to save');
+    }
   }
 
   function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-  // Sidebar
-  function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('open');
-    document.getElementById('sidebarOverlay').classList.toggle('open');
-  }
-  function closeSidebar() {
-    document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('sidebarOverlay').classList.remove('open');
-  }
-  function toggleGroup(id) {
-    document.getElementById(id).classList.toggle('collapsed');
-  }
-
-  // Profile menu
+  function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('open'); }
+  function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); }
   function toggleProfileMenu() { document.getElementById('profileDropdown').classList.toggle('open'); }
   document.addEventListener('click', e => {
     const wrap = document.getElementById('profileMenuWrap');
     if (wrap && !wrap.contains(e.target)) document.getElementById('profileDropdown').classList.remove('open');
-    const sidebar = document.getElementById('sidebar');
-    const hamburger = document.querySelector('.hamburger');
-    if (sidebar && !sidebar.contains(e.target) && !hamburger.contains(e.target)) closeSidebar();
   });
 
   let toastTimer;
@@ -807,7 +668,7 @@
   document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault();
-      saveTimers();
+      saveModeration();
     }
   });
 
