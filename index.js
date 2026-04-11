@@ -30,6 +30,7 @@ async function initDB() {
     )
   `);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS moderation JSONB DEFAULT '{}'`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS timers JSONB DEFAULT '[]'`);
   console.log("✅ Database ready");
 }
 
@@ -63,10 +64,7 @@ async function upsertUser(user) {
 }
 
 async function updateTokens(id, accessToken, refreshToken) {
-  await pool.query(
-    "UPDATE users SET access_token = $1, refresh_token = $2 WHERE id = $3",
-    [accessToken, refreshToken, id]
-  );
+  await pool.query("UPDATE users SET access_token = $1, refresh_token = $2 WHERE id = $3", [accessToken, refreshToken, id]);
 }
 
 async function updateCommands(id, commands) {
@@ -90,7 +88,7 @@ async function setActive(id, active) {
 }
 
 // ── Timer engine ─────────────────────────────────────────────
-const timerState = {}; // channelId -> { timerId -> { nextFire, countdownTarget } }
+const timerState = {};
 
 async function isChannelLive(userId, token) {
   try {
@@ -106,17 +104,12 @@ async function runTimers() {
       const timers = user.timers || [];
       if (!timers.length) continue;
       if (!timerState[user.id]) timerState[user.id] = {};
-
       let token = null;
       let live = null;
-
       for (const timer of timers) {
         if (!timer.enabled) continue;
-
         const state = timerState[user.id][timer.id] || {};
         const now = Date.now();
-
-        // Get live status if needed (cache per tick)
         if (timer.liveOnly && live === null) {
           try {
             if (!token) token = await getValidToken(user.id);
@@ -124,39 +117,27 @@ async function runTimers() {
           } catch (e) { live = false; }
         }
         if (timer.liveOnly && !live) continue;
-
         if (timer.type === 'interval') {
           const interval = (timer.intervalMinutes || 30) * 60 * 1000;
-          const lastFire = state.lastFire || (now - interval); // fire immediately on first tick
+          const lastFire = state.lastFire || (now - interval);
           if (now - lastFire >= interval) {
-            try {
-              await client.say(`#${user.login}`, timer.message);
-              timerState[user.id][timer.id] = { ...state, lastFire: now };
-            } catch (e) {}
+            try { await client.say(`#${user.login}`, timer.message); timerState[user.id][timer.id] = { ...state, lastFire: now }; } catch (e) {}
           } else if (!state.lastFire) {
             timerState[user.id][timer.id] = { ...state, lastFire: now };
           }
         }
-
         if (timer.type === 'countdown') {
-          // Initialize countdown target if not set
           if (!state.countdownTarget) {
-            const ms = (timer.countdownMinutes || 60) * 60 * 1000;
-            timerState[user.id][timer.id] = { ...state, countdownTarget: now + ms, fired: false };
+            timerState[user.id][timer.id] = { ...state, countdownTarget: now + (timer.countdownMinutes || 60) * 60 * 1000, fired: false };
             continue;
           }
           if (!state.fired && now >= state.countdownTarget) {
-            try {
-              await client.say(`#${user.login}`, timer.message);
-              timerState[user.id][timer.id] = { ...state, fired: true };
-            } catch (e) {}
+            try { await client.say(`#${user.login}`, timer.message); timerState[user.id][timer.id] = { ...state, fired: true }; } catch (e) {}
           }
         }
       }
     }
-  } catch (e) {
-    console.error("Timer engine error:", e.message);
-  }
+  } catch (e) { console.error("Timer engine error:", e.message); }
 }
 
 // ── Express setup ────────────────────────────────────────────
@@ -170,7 +151,6 @@ app.use(session({
   saveUninitialized: false,
 }));
 
-// Restore session from persistent cookie
 app.use(async (req, res, next) => {
   if (!req.session.userId && req.cookies?.botUserId) {
     const user = await getUser(req.cookies.botUserId).catch(() => null);
@@ -194,10 +174,15 @@ const client = new tmi.Client({
 
 async function startBot() {
   await initDB();
-  await client.connect();
-  console.log("✅ Bot connected to Twitch IRC");
-  const users = await getAllActiveUsers();
-  users.forEach(u => joinChannel(u.login));
+  try {
+    await client.connect();
+    console.log("✅ Bot connected to Twitch IRC");
+    const users = await getAllActiveUsers();
+    users.forEach(u => joinChannel(u.login));
+    setInterval(runTimers, 60 * 1000);
+  } catch (err) {
+    console.error("❌ Bot IRC connection failed:", err.message);
+  }
 }
 
 function joinChannel(login) {
@@ -274,13 +259,11 @@ async function canEditChannel(requestingUserId, targetChannelId) {
   const target = await getUser(targetChannelId);
   if (!target) return false;
   const modded = requester.modded_channels || [];
-  return modded.some(c => c.id === targetChannelId);
+  return modded.some(c => String(c.id) === String(targetChannelId));
 }
 
 // ── Variable resolver ────────────────────────────────────────
-// Supports {valorant_rank:Name#Tag} and {http:https://...} in command responses
 async function resolveVariables(text, tags, channelName) {
-  // {valorant_rank:RiotName#Tag}
   const valorantRegex = /\{valorant_rank:([^#]+)#([^}]+)\}/g;
   let match;
   while ((match = valorantRegex.exec(text)) !== null) {
@@ -291,48 +274,32 @@ async function resolveVariables(text, tags, channelName) {
       const rank = data.data?.current_data?.currenttierpatched || 'Unranked';
       const rr = data.data?.current_data?.ranking_in_tier ?? 0;
       text = text.replace(full, `${rank} ${rr}RR`);
-    } catch (e) {
-      text = text.replace(full, 'Could not fetch rank');
-    }
+    } catch (e) { text = text.replace(full, 'Could not fetch rank'); }
   }
-
-  // {http:https://some-api.com/endpoint} — fetches URL and uses response as text
   const httpRegex = /\{http:(https?:\/\/[^}]+)\}/g;
   while ((match = httpRegex.exec(text)) !== null) {
     const [full, url] = match;
     try {
       const res = await fetch(url);
-      const result = (await res.text()).trim().slice(0, 400); // cap at 400 chars
+      const result = (await res.text()).trim().slice(0, 400);
       text = text.replace(full, result);
-    } catch (e) {
-      text = text.replace(full, 'Could not fetch URL');
-    }
+    } catch (e) { text = text.replace(full, 'Could not fetch URL'); }
   }
-
-  // {user} — name of person who typed the command
   text = text.replace(/\{user\}/g, tags['display-name'] || tags.username || 'someone');
-
-  // {channel} — channel name
   text = text.replace(/\{channel\}/g, channelName);
-
   return text;
 }
 
 // ── Chat message handler ─────────────────────────────────────
 client.on("message", async (channel, tags, message, self) => {
   if (self) return;
-  if (!message.startsWith("!")) return;
 
   const channelName = channel.replace("#", "");
-  const [cmd, ...args] = message.trim().split(/\s+/);
-  const command = cmd.toLowerCase();
-  const say = (text) => client.say(channel, text);
-
-  const res = await pool.query("SELECT * FROM users WHERE login = $1", [channelName]);
-  const user = res.rows[0];
+  const dbRes = await pool.query("SELECT * FROM users WHERE login = $1", [channelName]);
+  const user = dbRes.rows[0];
   if (!user) return;
 
-  // ── Moderation filter ──────────────────────────────────────
+  // Moderation filter — runs on ALL messages
   try {
     const mod = user.moderation || {};
     if (mod.enabled !== false && mod.bannedWords && mod.bannedWords.length > 0) {
@@ -349,19 +316,16 @@ client.on("message", async (channel, tags, message, self) => {
           return msgToCheck.includes(w);
         });
         if (matched) {
-          // Apply punishment
           const punishment = mod.punishment || 'delete';
           if (punishment === 'timeout') {
-            const secs = mod.timeoutSeconds || 60;
-            await client.timeout(channel, tags.username, secs, 'Banned word detected');
+            await client.timeout(channel, tags.username, mod.timeoutSeconds || 60, 'Banned word detected');
           } else if (punishment === 'ban') {
             await client.ban(channel, tags.username, 'Banned word detected');
           } else {
             await client.deletemessage(channel, tags.id);
           }
           if (mod.responseMsg) {
-            const resp = mod.responseMsg.replace('{user}', tags['display-name'] || tags.username);
-            await client.say(channel, resp);
+            await client.say(channel, mod.responseMsg.replace('{user}', tags['display-name'] || tags.username));
           }
           return;
         }
@@ -370,6 +334,13 @@ client.on("message", async (channel, tags, message, self) => {
   } catch (modErr) {
     console.error(`[${channelName}] Moderation error:`, modErr.message);
   }
+
+  // Commands — only for messages starting with !
+  if (!message.startsWith("!")) return;
+
+  const [cmd, ...args] = message.trim().split(/\s+/);
+  const command = cmd.toLowerCase();
+  const say = (text) => client.say(channel, text);
 
   try {
     if (command === "!commands") {
@@ -391,7 +362,7 @@ client.on("message", async (channel, tags, message, self) => {
 
     if (!isPrivileged(tags)) {
       const match = (user.commands || []).find(c => c.command === command && c.enabled !== false && c.permission === "everyone");
-      if (match) say(match.response);
+      if (match) { const resolved = await resolveVariables(match.response, tags, channelName); say(resolved); }
       return;
     }
 
@@ -461,7 +432,6 @@ app.get("/auth/twitch", (req, res) => {
 app.get("/auth/callback", async (req, res) => {
   const { code, state, error } = req.query;
   if (error || state !== req.session.oauthState) return res.redirect("/?error=auth_failed");
-
   try {
     const tokenRes = await fetch("https://id.twitch.tv/oauth2/token", {
       method: "POST",
@@ -476,29 +446,19 @@ app.get("/auth/callback", async (req, res) => {
     });
     const tokens = await tokenRes.json();
     if (!tokens.access_token) throw new Error("No access token");
-
     const userRes = await helixGet("/users", tokens.access_token);
     const twitchUser = userRes.data?.[0];
     if (!twitchUser) throw new Error("No user data");
-
     const moddedChannels = await fetchModdedChannels(twitchUser.id, tokens.access_token);
     const existing = await getUser(twitchUser.id);
-
     await upsertUser({
-      id: twitchUser.id,
-      login: twitchUser.login,
-      display_name: twitchUser.display_name,
-      profile_image: twitchUser.profile_image_url,
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
-      active: true,
-      commands: existing?.commands || [],
-      modded_channels: moddedChannels,
+      id: twitchUser.id, login: twitchUser.login,
+      display_name: twitchUser.display_name, profile_image: twitchUser.profile_image_url,
+      access_token: tokens.access_token, refresh_token: tokens.refresh_token,
+      active: true, commands: existing?.commands || [], modded_channels: moddedChannels,
     });
-
     req.session.userId = twitchUser.id;
     if (!existing) joinChannel(twitchUser.login);
-
     res.cookie("botUserId", twitchUser.id, { maxAge: 1000 * 60 * 60 * 24 * 30, httpOnly: true });
     res.redirect("/dashboard");
   } catch (err) {
@@ -513,7 +473,7 @@ app.get("/auth/logout", (req, res) => {
   res.redirect("/");
 });
 
-// ── Dashboard API ────────────────────────────────────────────
+// ── API ──────────────────────────────────────────────────────
 function requireAuth(req, res, next) {
   if (!req.session.userId) return res.status(401).json({ error: "Not logged in" });
   next();
@@ -525,40 +485,25 @@ app.post("/api/refresh-channels", requireAuth, async (req, res) => {
     const moddedChannels = await fetchModdedChannels(req.session.userId, token);
     await updateModdedChannels(req.session.userId, moddedChannels);
     res.json({ moddedChannels });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to refresh" });
-  }
+  } catch (err) { res.status(500).json({ error: "Failed to refresh" }); }
 });
 
 app.get("/api/me", requireAuth, async (req, res) => {
   const user = await getUser(req.session.userId);
   if (!user) return res.status(404).json({ error: "User not found" });
-
   const modded = user.modded_channels || [];
   const authorizedModded = [];
-  for (const c of modded) {
-    const exists = await getUser(c.id);
-    if (exists) authorizedModded.push(c);
-  }
-
+  for (const c of modded) { const exists = await getUser(c.id); if (exists) authorizedModded.push(c); }
   const channels = [
     { id: user.id, login: user.login, displayName: user.display_name, profileImage: user.profile_image, role: "broadcaster" },
     ...authorizedModded.map(c => ({ id: c.id, login: c.login, displayName: c.displayName, profileImage: null, role: "mod" }))
   ];
-
-  res.json({
-    id: user.id, login: user.login, displayName: user.display_name,
-    profileImage: user.profile_image, active: user.active,
-    joinedAt: user.joined_at, channels,
-    timers: user.timers || [],
-  });
+  res.json({ id: user.id, login: user.login, displayName: user.display_name, profileImage: user.profile_image, active: user.active, joinedAt: user.joined_at, channels, timers: user.timers || [] });
 });
 
 app.get("/api/commands/:channelId", requireAuth, async (req, res) => {
   const { channelId } = req.params;
-  if (!await canEditChannel(req.session.userId, channelId)) {
-    return res.status(403).json({ error: "Not authorized" });
-  }
+  if (!await canEditChannel(req.session.userId, channelId)) return res.status(403).json({ error: "Not authorized" });
   const channel = await getUser(channelId);
   if (!channel) return res.status(404).json({ error: "Channel not found" });
   res.json({ commands: channel.commands || [], active: channel.active });
@@ -566,9 +511,7 @@ app.get("/api/commands/:channelId", requireAuth, async (req, res) => {
 
 app.post("/api/commands/:channelId", requireAuth, async (req, res) => {
   const { channelId } = req.params;
-  if (!await canEditChannel(req.session.userId, channelId)) {
-    return res.status(403).json({ error: "Not authorized" });
-  }
+  if (!await canEditChannel(req.session.userId, channelId)) return res.status(403).json({ error: "Not authorized" });
   await updateCommands(channelId, req.body.commands || []);
   res.json({ ok: true });
 });
@@ -589,12 +532,9 @@ app.post("/api/activate", requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
-// ── Timer API ────────────────────────────────────────────────
 app.get("/api/timers/:channelId", requireAuth, async (req, res) => {
   const { channelId } = req.params;
-  if (!await canEditChannel(req.session.userId, channelId)) {
-    return res.status(403).json({ error: "Not authorized" });
-  }
+  if (!await canEditChannel(req.session.userId, channelId)) return res.status(403).json({ error: "Not authorized" });
   const channel = await getUser(channelId);
   if (!channel) return res.status(404).json({ error: "Channel not found" });
   res.json({ timers: channel.timers || [] });
@@ -602,34 +542,22 @@ app.get("/api/timers/:channelId", requireAuth, async (req, res) => {
 
 app.post("/api/timers/:channelId", requireAuth, async (req, res) => {
   const { channelId } = req.params;
-  if (!await canEditChannel(req.session.userId, channelId)) {
-    return res.status(403).json({ error: "Not authorized" });
-  }
-  const timers = req.body.timers || [];
-  await updateTimers(channelId, timers);
-  // Reset timer state so changes take effect immediately
+  if (!await canEditChannel(req.session.userId, channelId)) return res.status(403).json({ error: "Not authorized" });
+  await updateTimers(channelId, req.body.timers || []);
   if (timerState[channelId]) delete timerState[channelId];
   res.json({ ok: true });
 });
 
-// Reset a specific countdown timer
 app.post("/api/timers/:channelId/reset/:timerId", requireAuth, async (req, res) => {
   const { channelId, timerId } = req.params;
-  if (!await canEditChannel(req.session.userId, channelId)) {
-    return res.status(403).json({ error: "Not authorized" });
-  }
-  if (timerState[channelId] && timerState[channelId][timerId]) {
-    delete timerState[channelId][timerId];
-  }
+  if (!await canEditChannel(req.session.userId, channelId)) return res.status(403).json({ error: "Not authorized" });
+  if (timerState[channelId] && timerState[channelId][timerId]) delete timerState[channelId][timerId];
   res.json({ ok: true });
 });
 
-// ── Moderation API ───────────────────────────────────────────
 app.get("/api/moderation/:channelId", requireAuth, async (req, res) => {
   const { channelId } = req.params;
-  if (!await canEditChannel(req.session.userId, channelId)) {
-    return res.status(403).json({ error: "Not authorized" });
-  }
+  if (!await canEditChannel(req.session.userId, channelId)) return res.status(403).json({ error: "Not authorized" });
   const channel = await getUser(channelId);
   if (!channel) return res.status(404).json({ error: "Channel not found" });
   res.json({ moderation: channel.moderation || {} });
@@ -637,35 +565,17 @@ app.get("/api/moderation/:channelId", requireAuth, async (req, res) => {
 
 app.post("/api/moderation/:channelId", requireAuth, async (req, res) => {
   const { channelId } = req.params;
-  if (!await canEditChannel(req.session.userId, channelId)) {
-    return res.status(403).json({ error: "Not authorized" });
-  }
+  if (!await canEditChannel(req.session.userId, channelId)) return res.status(403).json({ error: "Not authorized" });
   await updateModeration(channelId, req.body.moderation || {});
   res.json({ ok: true });
 });
 
 // ── Serve frontend ───────────────────────────────────────────
-app.get("/", (req, res, next) => {
-  if (req.session.userId) return res.redirect("/dashboard");
-  next();
-});
-
-app.get("/dashboard", (req, res) => {
-  if (!req.session.userId) return res.redirect("/");
-  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
-});
-
-app.get("/timers", (req, res) => {
-  if (!req.session.userId) return res.redirect("/");
-  res.sendFile(path.join(__dirname, "public", "timers.html"));
-});
-
-app.get("/moderation", (req, res) => {
-  if (!req.session.userId) return res.redirect("/");
-  res.sendFile(path.join(__dirname, "public", "moderation.html"));
-});
+app.get("/", (req, res, next) => { if (req.session.userId) return res.redirect("/dashboard"); next(); });
+app.get("/dashboard", (req, res) => { if (!req.session.userId) return res.redirect("/"); res.sendFile(path.join(__dirname, "public", "dashboard.html")); });
+app.get("/timers", (req, res) => { if (!req.session.userId) return res.redirect("/"); res.sendFile(path.join(__dirname, "public", "timers.html")); });
+app.get("/moderation", (req, res) => { if (!req.session.userId) return res.redirect("/"); res.sendFile(path.join(__dirname, "public", "moderation.html")); });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🌐 Server running on port ${PORT}`));
-
 startBot().catch(console.error);
