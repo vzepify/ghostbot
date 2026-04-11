@@ -25,6 +25,7 @@ async function initDB() {
       commands JSONB DEFAULT '[]',
       modded_channels JSONB DEFAULT '[]',
       timers JSONB DEFAULT '[]',
+      moderation JSONB DEFAULT '{}',
       joined_at TIMESTAMPTZ DEFAULT NOW()
     )
   `);
@@ -79,6 +80,10 @@ async function updateTimers(id, timers) {
   await pool.query("UPDATE users SET timers = $2 WHERE id = $1", [id, JSON.stringify(timers)]);
 }
 
+async function updateModeration(id, moderation) {
+  await pool.query("UPDATE users SET moderation = $2 WHERE id = $1", [id, JSON.stringify(moderation)]);
+}
+
 async function setActive(id, active) {
   await pool.query("UPDATE users SET active = $2 WHERE id = $1", [id, active]);
 }
@@ -97,10 +102,8 @@ async function runTimers() {
   try {
     const res = await pool.query("SELECT * FROM users WHERE active = true");
     for (const user of res.rows) {
-      const timers = typeof user.timers === "string"
-  ? JSON.parse(user.timers)
-  : (user.timers || []);
-
+      const timers = user.timers || [];
+      if (!timers.length) continue;
       if (!timerState[user.id]) timerState[user.id] = {};
 
       let token = null;
@@ -327,6 +330,45 @@ client.on("message", async (channel, tags, message, self) => {
   const res = await pool.query("SELECT * FROM users WHERE login = $1", [channelName]);
   const user = res.rows[0];
   if (!user) return;
+
+  // ── Moderation filter ──────────────────────────────────────
+  try {
+    const mod = user.moderation || {};
+    if (mod.enabled !== false && mod.bannedWords && mod.bannedWords.length > 0) {
+      const isExempt = isMod(tags) && mod.exemptMods !== false;
+      const isExemptUser = (mod.exemptUsers || []).includes(tags.username?.toLowerCase());
+      if (!isExempt && !isExemptUser) {
+        const msgToCheck = mod.caseInsensitive !== false ? message.toLowerCase() : message;
+        const matched = mod.bannedWords.some(word => {
+          const w = mod.caseInsensitive !== false ? word.toLowerCase() : word;
+          if (w.includes('*')) {
+            const pattern = new RegExp(w.replace(/\*/g, '.*'), 'i');
+            return pattern.test(msgToCheck);
+          }
+          return msgToCheck.includes(w);
+        });
+        if (matched) {
+          // Apply punishment
+          const punishment = mod.punishment || 'delete';
+          if (punishment === 'timeout') {
+            const secs = mod.timeoutSeconds || 60;
+            await client.timeout(channel, tags.username, secs, 'Banned word detected');
+          } else if (punishment === 'ban') {
+            await client.ban(channel, tags.username, 'Banned word detected');
+          } else {
+            await client.deletemessage(channel, tags.id);
+          }
+          if (mod.responseMsg) {
+            const resp = mod.responseMsg.replace('{user}', tags['display-name'] || tags.username);
+            await client.say(channel, resp);
+          }
+          return;
+        }
+      }
+    }
+  } catch (modErr) {
+    console.error(`[${channelName}] Moderation error:`, modErr.message);
+  }
 
   try {
     if (command === "!commands") {
@@ -581,6 +623,26 @@ app.post("/api/timers/:channelId/reset/:timerId", requireAuth, async (req, res) 
   res.json({ ok: true });
 });
 
+// ── Moderation API ───────────────────────────────────────────
+app.get("/api/moderation/:channelId", requireAuth, async (req, res) => {
+  const { channelId } = req.params;
+  if (!await canEditChannel(req.session.userId, channelId)) {
+    return res.status(403).json({ error: "Not authorized" });
+  }
+  const channel = await getUser(channelId);
+  if (!channel) return res.status(404).json({ error: "Channel not found" });
+  res.json({ moderation: channel.moderation || {} });
+});
+
+app.post("/api/moderation/:channelId", requireAuth, async (req, res) => {
+  const { channelId } = req.params;
+  if (!await canEditChannel(req.session.userId, channelId)) {
+    return res.status(403).json({ error: "Not authorized" });
+  }
+  await updateModeration(channelId, req.body.moderation || {});
+  res.json({ ok: true });
+});
+
 // ── Serve frontend ───────────────────────────────────────────
 app.get("/", (req, res, next) => {
   if (req.session.userId) return res.redirect("/dashboard");
@@ -597,9 +659,12 @@ app.get("/timers", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "timers.html"));
 });
 
+app.get("/moderation", (req, res) => {
+  if (!req.session.userId) return res.redirect("/");
+  res.sendFile(path.join(__dirname, "public", "moderation.html"));
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🌐 Server running on port ${PORT}`));
 
 startBot().catch(console.error);
-
-setInterval(runTimers, 30 * 1000); // runs every 30 seconds
