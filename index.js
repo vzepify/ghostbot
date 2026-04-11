@@ -320,9 +320,28 @@ client.on("message", async (channel, tags, message, self) => {
           const punishment = mod.punishment || 'delete';
           try {
             if (punishment === 'timeout') {
-              await client.timeout(channel, tags.username, mod.timeoutSeconds || 60, 'Banned word detected');
+              const secs = mod.timeoutSeconds || 60;
+              const token = await getValidToken(user.id);
+              const targetData = await helixGet(`/users?login=${tags.username}`, token);
+              const targetId = targetData.data?.[0]?.id;
+              if (targetId) {
+                await fetch(`https://api.twitch.tv/helix/moderation/bans?broadcaster_id=${user.id}&moderator_id=${user.id}`, {
+                  method: 'POST',
+                  headers: { Authorization: `Bearer ${token}`, 'Client-Id': process.env.TWITCH_CLIENT_ID, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ data: { user_id: targetId, duration: secs, reason: 'Banned word detected' } })
+                });
+              }
             } else if (punishment === 'ban') {
-              await client.ban(channel, tags.username, 'Banned word detected');
+              const token = await getValidToken(user.id);
+              const targetData = await helixGet(`/users?login=${tags.username}`, token);
+              const targetId = targetData.data?.[0]?.id;
+              if (targetId) {
+                await fetch(`https://api.twitch.tv/helix/moderation/bans?broadcaster_id=${user.id}&moderator_id=${user.id}`, {
+                  method: 'POST',
+                  headers: { Authorization: `Bearer ${token}`, 'Client-Id': process.env.TWITCH_CLIENT_ID, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ data: { user_id: targetId, reason: 'Banned word detected' } })
+                });
+              }
             } else {
               await client.deleteMessage(channel, tags.id);
             }
