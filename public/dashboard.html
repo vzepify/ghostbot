@@ -223,6 +223,29 @@
     border-radius: 4px; padding: 2px 6px; font-family: var(--mono);
     font-size: 10px; color: var(--muted);
   }
+
+  /* Scope warning banner */
+  .scope-banner {
+    display: none; align-items: center; justify-content: space-between;
+    gap: 14px; background: rgba(245,180,110,0.08);
+    border: 1px solid rgba(245,180,110,0.3); border-radius: 12px;
+    padding: 14px 20px; margin-bottom: 20px;
+    animation: fadeDown 0.4s ease both;
+  }
+  .scope-banner.show { display: flex; }
+  .scope-banner-left { display: flex; align-items: center; gap: 10px; }
+  .scope-banner-icon { font-size: 20px; }
+  .scope-banner-text { font-family: var(--mono); font-size: 12px; }
+  .scope-banner-text strong { color: var(--orange); display: block; margin-bottom: 2px; }
+  .scope-banner-text span { color: var(--muted); }
+  .btn-reauth {
+    background: var(--orange); color: #000; font-family: var(--sans);
+    font-weight: 700; font-size: 12px; padding: 8px 16px;
+    border-radius: 8px; border: none; cursor: pointer;
+    white-space: nowrap; transition: all 0.15s; text-decoration: none;
+    display: inline-block;
+  }
+  .btn-reauth:hover { opacity: 0.9; transform: translateY(-1px); }
   @keyframes fadeDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
   @media (max-width: 600px) {
@@ -428,6 +451,17 @@
     </div>
   </div>
 
+  <!-- Scope warning banner -->
+  <div class="scope-banner" id="scopeBanner">
+    <div class="scope-banner-left">
+      <span class="scope-banner-icon">⚠️</span>
+      <div class="scope-banner-text">
+        <strong>Re-authorization required</strong>
+        <span>New permissions are needed for moderation features to work.</span>
+      </div>
+    </div>
+    <a href="/auth/twitch" class="btn-reauth">Re-authorize →</a>
+  </div>
 <div class="container">
 
   <div class="status-card">
@@ -939,6 +973,7 @@
   }
 
   init();
+  checkScopes();
 
   // Ctrl+S to save
   document.addEventListener('keydown', e => {
