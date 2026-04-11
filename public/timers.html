@@ -309,6 +309,25 @@
     display: inline-block;
   }
   .btn-reauth:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  /* Channel indicator in topbar */
+  .topbar-channel-info {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 5px 12px;
+    font-family: var(--mono); font-size: 12px;
+  }
+  .topbar-channel-avatar {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 1px solid var(--border); object-fit: cover;
+  }
+  .topbar-channel-name { color: var(--text); font-weight: 600; }
+  .topbar-role-chip {
+    font-size: 10px; font-weight: 700; padding: 2px 7px;
+    border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .chip-broadcaster { background: rgba(245,110,245,0.12); color: var(--accent2); }
+  .chip-mod { background: rgba(159,110,245,0.15); color: var(--accent); }
   @keyframes fadeDown { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
 
   @media (max-width: 600px) {
@@ -376,7 +395,14 @@
 </aside>
 
 <div class="main-content">
-<div class="topbar"><span class="topbar-page-title">Timers</span></div>
+<div class="topbar">
+  <span class="topbar-page-title">Timers</span>
+  <div class="topbar-channel-info" id="topbarChannelInfo" style="display:none;">
+    <img class="topbar-channel-avatar" id="topbarChannelAvatar" src="" alt="">
+    <span class="topbar-channel-name" id="topbarChannelName"></span>
+    <span class="topbar-role-chip" id="topbarRoleChip"></span>
+  </div>
+</div>
   <!-- Scope warning banner -->
   <div class="scope-banner" id="scopeBanner">
     <div class="scope-banner-left">
@@ -490,6 +516,17 @@
 
     document.getElementById('navAvatar').src = userData.profileImage;
     document.getElementById('navUsername').textContent = userData.displayName;
+    // Set topbar channel info
+    const tbInfo = document.getElementById('topbarChannelInfo');
+    if (tbInfo) {
+      tbInfo.style.display = 'flex';
+      const tbAvatar = document.getElementById('topbarChannelAvatar');
+      if (tbAvatar) tbAvatar.src = userData.profileImage || '';
+      const tbName = document.getElementById('topbarChannelName');
+      if (tbName) tbName.textContent = userData.displayName;
+      const tbChip = document.getElementById('topbarRoleChip');
+      if (tbChip) { tbChip.textContent = 'Your channel'; tbChip.className = 'topbar-role-chip chip-broadcaster'; }
+    }
 
     buildChannelList(userData.channels || []);
     await loadTimers(selectedChannelId);
@@ -521,6 +558,17 @@
     selectedChannelId = id;
     document.getElementById('profileDropdown').classList.remove('open');
     buildChannelList(userData.channels || []);
+    const ch = (userData.channels || []).find(c => c.id === id);
+    if (ch) {
+      const tbInfo = document.getElementById('topbarChannelInfo');
+      if (tbInfo) tbInfo.style.display = 'flex';
+      const tbAvatar = document.getElementById('topbarChannelAvatar');
+      if (tbAvatar) tbAvatar.src = ch.profileImage || userData.profileImage || '';
+      const tbName = document.getElementById('topbarChannelName');
+      if (tbName) tbName.textContent = ch.displayName;
+      const tbChip = document.getElementById('topbarRoleChip');
+      if (tbChip) { tbChip.textContent = ch.role === 'broadcaster' ? 'Your channel' : 'Moderating'; tbChip.className = `topbar-role-chip ${ch.role === 'broadcaster' ? 'chip-broadcaster' : 'chip-mod'}`; }
+    }
     await loadTimers(id);
   }
 
