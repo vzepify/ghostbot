@@ -461,17 +461,11 @@
 <!-- Main content -->
 <div class="main-content">
   <div class="topbar">
-    <div style="display:flex;align-items:center;gap:10px;">
-      <span class="topbar-page-title">Commands</span>
-      <div class="topbar-channel-info" id="topbarChannelInfo">
-        <img class="topbar-channel-avatar" id="topbarChannelAvatar" src="" alt="">
-        <span class="topbar-channel-name" id="topbarChannelName"></span>
-        <span class="topbar-role-chip" id="topbarRoleChip"></span>
-      </div>
-    </div>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <span id="statusDotTopbar" style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);display:inline-block;"></span>
-      <span style="font-family:var(--mono);font-size:12px;color:var(--muted);" id="topbarStatus">Active</span>
+    <span class="topbar-page-title">Commands</span>
+    <div class="topbar-channel-info" id="topbarChannelInfo" style="display:none;">
+      <img class="topbar-channel-avatar" id="topbarChannelAvatar" src="" alt="">
+      <span class="topbar-channel-name" id="topbarChannelName"></span>
+      <span class="topbar-role-chip" id="topbarRoleChip"></span>
     </div>
   </div>
 
@@ -601,6 +595,17 @@
     buildChannelList(userData.channels || []);
     updateRoleBadge();
     updateStatusUI();
+    // Set topbar channel info — same as timers page
+    const tbInfo = document.getElementById('topbarChannelInfo');
+    if (tbInfo) {
+      tbInfo.style.display = 'flex';
+      const tbAvatar = document.getElementById('topbarChannelAvatar');
+      if (tbAvatar) tbAvatar.src = userData.profileImage || '';
+      const tbName = document.getElementById('topbarChannelName');
+      if (tbName) tbName.textContent = userData.displayName;
+      const tbChip = document.getElementById('topbarRoleChip');
+      if (tbChip) { tbChip.textContent = 'Your channel'; tbChip.className = 'topbar-role-chip chip-broadcaster'; }
+    }
 
 
 
@@ -685,6 +690,19 @@
     const isOwn = selectedChannelId === userData.id;
     document.getElementById('toggleBtn').style.display = isOwn ? '' : 'none';
     updateStatusUI();
+
+    // Update topbar — same as timers page
+    const ch = (userData.channels || []).find(c => c.id === channelId);
+    if (ch) {
+      const tbInfo = document.getElementById('topbarChannelInfo');
+      if (tbInfo) tbInfo.style.display = 'flex';
+      const tbAvatar = document.getElementById('topbarChannelAvatar');
+      if (tbAvatar) tbAvatar.src = ch.profileImage || userData.profileImage || '';
+      const tbName = document.getElementById('topbarChannelName');
+      if (tbName) tbName.textContent = ch.displayName;
+      const tbChip = document.getElementById('topbarRoleChip');
+      if (tbChip) { tbChip.textContent = role === 'broadcaster' ? 'Your channel' : 'Moderating'; tbChip.className = `topbar-role-chip ${role === 'broadcaster' ? 'chip-broadcaster' : 'chip-mod'}`; }
+    }
 
     await loadChannelCommands(selectedChannelId);
   }
