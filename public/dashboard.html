@@ -280,7 +280,7 @@
       </div>
     </div>
     <a href="/auth/twitch" class="btn-reauth">Re-authorize →</a>
-<button onclick="dismissScopeBanner()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:0 4px;">×</button>
+    <button onclick="dismissScopeBanner()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;padding:0 4px;line-height:1;">×</button>
   </div>
 
   <div class="status-card">
@@ -339,7 +339,7 @@
 </div>
 </div>
 
-<div class="toast" id="toast"><span id="toastIcon">made with ♡ by NeoNarwhai</span><span id="toastMsg"></span></div>
+<div class="toast" id="toast"><span id="toastIcon">✅</span><span id="toastMsg"></span></div>
 
 <script>
   let userData = null;
@@ -560,11 +560,19 @@
   }
 
   async function checkScopes() {
+    if (localStorage.getItem('scopeBannerDismissed') === 'true') return;
     try {
       const res = await fetch('/api/check-scopes');
       const data = await res.json();
+      console.log('Scopes granted:', data.granted);
+      console.log('Scopes missing:', data.missing);
       if (!data.ok) document.getElementById('scopeBanner').classList.add('show');
     } catch (e) {}
+  }
+
+  function dismissScopeBanner() {
+    document.getElementById('scopeBanner').classList.remove('show');
+    localStorage.setItem('scopeBannerDismissed', 'true');
   }
 
   function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('open'); }
