@@ -21,7 +21,7 @@
   }
 
   nav {
-    position: relative; z-index: 10;
+    position: sticky; top: 0; z-index: 20;
     background: var(--surface); border-bottom: 1px solid var(--border);
     padding: 0 32px; height: 60px;
     display: flex; align-items: center; justify-content: space-between;
@@ -247,7 +247,7 @@
     width: 220px; flex-shrink: 0;
     background: var(--surface); border-right: 1px solid var(--border);
     display: flex; flex-direction: column;
-    position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto;
+    position: sticky; top: 112px; height: calc(100vh - 112px); overflow-y: auto;
   }
 
   .sidebar-group { padding: 16px 0 4px; }
@@ -288,7 +288,7 @@
   .topbar {
     height: 52px; background: var(--surface); border-bottom: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-between;
-    padding: 0 24px; position: sticky; top: 60px; z-index: 5;
+    padding: 0 24px; position: sticky; top: 0; z-index: 5;
   }
   .topbar-left { display: flex; align-items: center; gap: 10px; }
   .topbar-page-title { font-weight: 700; font-size: 15px; }
@@ -390,22 +390,15 @@
     </div>
   </div>
 
-  <div class="sidebar-group" id="grp-channel">
-    <div class="sidebar-group-header" onclick="toggleGroup('grp-channel')">
-      <span class="sidebar-group-label">Channel</span>
+  <div class="sidebar-group">
+    <div class="sidebar-group-header" onclick="this.parentElement.classList.toggle('collapsed')">
+      <span class="sidebar-group-label">Moderation</span>
       <span class="sidebar-chevron">▾</span>
     </div>
     <div class="sidebar-group-items">
-      <div class="sidebar-item" style="cursor:default;" id="sidebarChannelName">
-        <span class="sidebar-item-icon">📺</span>
-        <span id="sidebarChannel" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">loading...</span>
-      </div>
-      <div class="sidebar-item" style="padding-left:16px;">
-        <span class="role-badge" id="roleBadge" style="margin:0;"></span>
-      </div>
+      <a href="/moderation" class="sidebar-item"><span class="sidebar-item-icon">🚫</span> Banned words</a>
     </div>
   </div>
-
   <div class="sidebar-bottom">
     <a href="https://ko-fi.com/neobotxyz" target="_blank" class="sidebar-item">
       <span class="sidebar-item-icon">☕</span> Support NeoBot
