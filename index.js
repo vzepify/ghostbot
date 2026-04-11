@@ -29,6 +29,7 @@ async function initDB() {
       joined_at TIMESTAMPTZ DEFAULT NOW()
     )
   `);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS moderation JSONB DEFAULT '{}'`);
   console.log("✅ Database ready");
 }
 
