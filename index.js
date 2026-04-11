@@ -323,7 +323,7 @@ client.on("message", async (channel, tags, message, self) => {
           } else if (punishment === 'ban') {
             await client.ban(channel, tags.username, 'Banned word detected');
           } else {
-            await client.deletemessage(channel, tags.id);
+            await client.deleteMessage(channel, tags.id);
           }
           if (mod.responseMsg) {
             await client.say(channel, mod.responseMsg.replace('{user}', tags['display-name'] || tags.username));
