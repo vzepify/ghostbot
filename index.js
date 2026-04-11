@@ -302,7 +302,7 @@ client.on("message", async (channel, tags, message, self) => {
   // Moderation filter — runs on ALL messages
   try {
     const mod = user.moderation || {};
-    console.log(`[${channelName}] mod filter: enabled=${mod.enabled} words=${JSON.stringify(mod.bannedWords)} tagId=${tags.id} tagKeys=${Object.keys(tags).join(',')}`);
+    console.log(`[${channelName}] mod filter: enabled=${mod.enabled} words=${JSON.stringify(mod.bannedWords)}`);
     if (mod.enabled !== false && mod.bannedWords && mod.bannedWords.length > 0) {
       const isExempt = isMod(tags) && mod.exemptMods !== false;
       const isExemptUser = (mod.exemptUsers || []).includes(tags.username?.toLowerCase());
@@ -318,15 +318,21 @@ client.on("message", async (channel, tags, message, self) => {
         });
         if (matched) {
           const punishment = mod.punishment || 'delete';
-          if (punishment === 'timeout') {
-            await client.timeout(channel, tags.username, mod.timeoutSeconds || 60, 'Banned word detected');
-          } else if (punishment === 'ban') {
-            await client.ban(channel, tags.username, 'Banned word detected');
-          } else {
-            await client.deleteMessage(channel, tags.id);
+          try {
+            if (punishment === 'timeout') {
+              await client.timeout(channel, tags.username, mod.timeoutSeconds || 60, 'Banned word detected');
+            } else if (punishment === 'ban') {
+              await client.ban(channel, tags.username, 'Banned word detected');
+            } else {
+              await client.deleteMessage(channel, tags.id);
+            }
+          } catch (actionErr) {
+            console.error(`[${channelName}] Punishment error:`, actionErr.message || String(actionErr));
           }
           if (mod.responseMsg) {
-            await client.say(channel, mod.responseMsg.replace('{user}', tags['display-name'] || tags.username));
+            try {
+              await client.say(channel, mod.responseMsg.replace('{user}', tags['display-name'] || tags.username));
+            } catch (e) {}
           }
           return;
         }
