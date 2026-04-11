@@ -592,20 +592,20 @@
     selectedChannelId = userData.id;
     selectedChannelRole = 'broadcaster';
 
+    // Set topbar channel info on load
+    const tbInfo = document.getElementById('topbarChannelInfo');
+    if (tbInfo) tbInfo.style.display = 'flex';
+    const tbAvatar = document.getElementById('topbarChannelAvatar');
+    if (tbAvatar) tbAvatar.src = userData.profileImage || '';
+    const tbName = document.getElementById('topbarChannelName');
+    if (tbName) tbName.textContent = userData.displayName;
+    const tbChip = document.getElementById('topbarRoleChip');
+    if (tbChip) { tbChip.textContent = 'Your channel'; tbChip.className = 'topbar-role-chip chip-broadcaster'; }
+
     buildChannelList(userData.channels || []);
     updateRoleBadge();
     updateStatusUI();
-    // Set topbar channel info — same as timers page
-    const tbInfo = document.getElementById('topbarChannelInfo');
-    if (tbInfo) {
-      tbInfo.style.display = 'flex';
-      const tbAvatar = document.getElementById('topbarChannelAvatar');
-      if (tbAvatar) tbAvatar.src = userData.profileImage || '';
-      const tbName = document.getElementById('topbarChannelName');
-      if (tbName) tbName.textContent = userData.displayName;
-      const tbChip = document.getElementById('topbarRoleChip');
-      if (tbChip) { tbChip.textContent = 'Your channel'; tbChip.className = 'topbar-role-chip chip-broadcaster'; }
-    }
+
 
 
 
@@ -646,27 +646,6 @@
     }
   });
 
-  function updateTopbarChannel() {
-    const channels = userData ? (userData.channels || []) : [];
-    const active = channels.find(c => c.id === selectedChannelId) || {
-      displayName: userData?.displayName || '',
-      profileImage: userData?.profileImage || '',
-      role: selectedChannelRole
-    };
-    const el = document.getElementById('topbarChannelInfo');
-    if (!el) return;
-    el.style.display = 'flex';
-    const av = document.getElementById('topbarChannelAvatar');
-    if (av) av.src = active.profileImage || userData?.profileImage || '';
-    const nm = document.getElementById('topbarChannelName');
-    if (nm) nm.textContent = active.displayName || userData?.displayName || '';
-    const ch = document.getElementById('topbarRoleChip');
-    if (ch) {
-      ch.textContent = selectedChannelRole === 'broadcaster' ? 'Your channel' : 'Moderating';
-      ch.className = `topbar-role-chip ${selectedChannelRole === 'broadcaster' ? 'chip-broadcaster' : 'chip-mod'}`;
-    }
-  }
-
   function updateRoleBadge() {
     const badge = document.getElementById('roleBadge');
     badge.textContent = selectedChannelRole === 'broadcaster' ? 'Broadcaster' : 'Moderator';
@@ -676,8 +655,7 @@
     const active = channels.find(c => c.id === selectedChannelId);
     const sidebarChan = document.getElementById('sidebarChannel');
     if (sidebarChan) sidebarChan.textContent = active ? active.displayName : '';
-    // Update topbar channel info
-    updateTopbarChannel();
+
   }
 
   async function switchChannel(channelId, role) {
