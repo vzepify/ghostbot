@@ -9,11 +9,11 @@
   :root {
     --bg: #0d0d0f; --surface: #141416; --surface2: #1c1c20;
     --border: #2a2a30; --accent: #9f6ef5; --accent2: #f56ef5;
-    --green: #6ef5a0; --red: #f56e6e; --text: #e8e8f0; --muted: #6a6a7a;
+    --green: #6ef5a0; --orange: #f5b46e; --red: #f56e6e; --text: #e8e8f0; --muted: #6a6a7a;
     --mono: 'JetBrains Mono', monospace; --sans: 'Syne', sans-serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; display: flex; flex-direction: column; }
   body::before {
     content: ''; position: fixed; inset: 0;
     background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
@@ -31,49 +31,71 @@
   .nav-right { display: flex; align-items: center; gap: 16px; }
   .avatar { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border); }
   .username { font-family: var(--mono); font-size: 13px; color: var(--muted); }
-  .btn-sm {
-    font-family: var(--sans); font-weight: 600; font-size: 12px;
-    padding: 6px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border);
-    background: transparent; color: var(--muted); transition: all 0.15s; text-decoration: none;
-  }
-  .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+  .kofi-btn { display: inline-flex; align-items: center; gap: 6px; background: #ff5e5b; color: #fff; font-family: var(--sans); font-weight: 700; font-size: 12px; padding: 6px 14px; border-radius: 7px; text-decoration: none; transition: all 0.15s; white-space: nowrap; }
+  .kofi-btn:hover { background: #ff7875; transform: translateY(-1px); }
 
-  .container { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 40px 24px 80px; }
+  .profile-menu-wrap { position: relative; }
+  .profile-btn { display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px 5px 6px; cursor: pointer; color: var(--text); transition: all 0.15s; }
+  .profile-btn:hover { border-color: var(--accent); }
+  .profile-dropdown { position: absolute; top: calc(100% + 8px); right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; min-width: 200px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); z-index: 100; overflow: hidden; opacity: 0; transform: translateY(-8px); pointer-events: none; transition: all 0.15s; }
+  .profile-dropdown.open { opacity: 1; transform: translateY(0); pointer-events: all; }
+  .dropdown-label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; padding: 10px 14px 6px; }
+  .dropdown-item { display: flex; align-items: center; gap: 10px; padding: 9px 14px; font-family: var(--mono); font-size: 13px; color: var(--text); cursor: pointer; transition: background 0.1s; text-decoration: none; border: none; background: none; width: 100%; text-align: left; }
+  .dropdown-item:hover { background: var(--surface2); }
+  .dropdown-item.active { color: var(--accent); }
+  .dropdown-item .item-role { font-size: 10px; color: var(--muted); margin-left: auto; }
+  .dropdown-divider { height: 1px; background: var(--border); margin: 4px 0; }
+  .dropdown-logout { color: var(--muted); }
+  .dropdown-logout:hover { color: var(--red); }
 
-  /* Channel switcher */
-  .channel-switcher {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
-    padding: 16px 20px; margin-bottom: 20px;
-    display: flex; align-items: center; gap: 14px;
-    animation: fadeDown 0.4s ease both;
-  }
-  .switcher-label { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
-  .channel-select {
-    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
-    color: var(--text); font-family: var(--mono); font-size: 13px;
-    padding: 8px 12px; outline: none; transition: border-color 0.15s; flex: 1; cursor: pointer;
-  }
-  .channel-select:focus { border-color: var(--accent); }
-  .channel-select option { background: var(--surface2); }
-  .role-badge {
-    font-family: var(--mono); font-size: 10px; font-weight: 600;
-    padding: 4px 10px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
-  }
-  .role-broadcaster { background: rgba(245,110,245,0.12); color: var(--accent2); }
-  .role-mod { background: rgba(159,110,245,0.15); color: var(--accent); }
+  /* Layout */
+  .layout { display: flex; flex: 1; min-height: calc(100vh - 60px); }
 
-  .status-card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
-    padding: 20px 24px; margin-bottom: 28px;
-    display: flex; align-items: center; justify-content: space-between;
-    animation: fadeDown 0.4s 0.05s ease both;
-  }
-  .status-left { display: flex; align-items: center; gap: 12px; }
-  .status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); flex-shrink: 0; }
-  .status-dot.inactive { background: var(--muted); box-shadow: none; }
-  .status-text { font-family: var(--mono); font-size: 13px; }
-  .status-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .sidebar { width: 220px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto; }
+  .sidebar-group { padding: 16px 0 4px; }
+  .sidebar-group-header { display: flex; align-items: center; justify-content: space-between; padding: 4px 16px 8px; cursor: pointer; user-select: none; }
+  .sidebar-group-label { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1.2px; }
+  .sidebar-chevron { color: var(--muted); font-size: 10px; transition: transform 0.2s; }
+  .sidebar-group.collapsed .sidebar-chevron { transform: rotate(-90deg); }
+  .sidebar-group.collapsed .sidebar-group-items { display: none; }
+  .sidebar-item { display: flex; align-items: center; gap: 10px; padding: 9px 16px; font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; transition: all 0.12s; border: none; background: none; width: 100%; text-align: left; text-decoration: none; position: relative; }
+  .sidebar-item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: transparent; border-radius: 0 2px 2px 0; transition: background 0.15s; }
+  .sidebar-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+  .sidebar-item.active { color: var(--accent); background: rgba(159,110,245,0.08); }
+  .sidebar-item.active::before { background: var(--accent); }
+  .sidebar-item-icon { width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; background: var(--surface2); }
+  .sidebar-item.active .sidebar-item-icon { background: rgba(159,110,245,0.15); }
+  .sidebar-bottom { margin-top: auto; border-top: 1px solid var(--border); padding: 8px 0; }
+  .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 40; }
+  .sidebar-overlay.open { display: block; }
+  .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; flex-direction: column; gap: 5px; border-radius: 6px; }
+  .hamburger span { display: block; width: 20px; height: 2px; background: var(--text); border-radius: 2px; }
 
+  .main-content { flex: 1; min-width: 0; }
+  .topbar { height: 52px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 5; }
+  .topbar-page-title { font-weight: 700; font-size: 15px; }
+  .container { padding: 28px 28px 80px; max-width: 860px; }
+
+  /* Channel indicator */
+  .topbar-channel-info { display: flex; align-items: center; gap: 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 5px 12px; font-family: var(--mono); font-size: 12px; }
+  .topbar-channel-avatar { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--border); object-fit: cover; }
+  .topbar-channel-name { color: var(--text); font-weight: 600; }
+  .topbar-role-chip { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .chip-broadcaster { background: rgba(245,110,245,0.12); color: var(--accent2); }
+  .chip-mod { background: rgba(159,110,245,0.15); color: var(--accent); }
+
+  /* Scope banner */
+  .scope-banner { display: none; align-items: center; justify-content: space-between; gap: 14px; background: rgba(245,180,110,0.08); border: 1px solid rgba(245,180,110,0.3); border-radius: 12px; padding: 14px 20px; margin-bottom: 20px; }
+  .scope-banner.show { display: flex; }
+  .scope-banner-left { display: flex; align-items: center; gap: 10px; }
+  .scope-banner-icon { font-size: 20px; }
+  .scope-banner-text { font-family: var(--mono); font-size: 12px; }
+  .scope-banner-text strong { color: var(--orange); display: block; margin-bottom: 2px; }
+  .scope-banner-text span { color: var(--muted); }
+  .btn-reauth { background: var(--orange); color: #000; font-family: var(--sans); font-weight: 700; font-size: 12px; padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; white-space: nowrap; transition: all 0.15s; text-decoration: none; display: inline-block; }
+  .btn-reauth:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  /* Components */
   .btn { font-family: var(--sans); font-weight: 600; font-size: 13px; border: none; border-radius: 8px; padding: 8px 18px; cursor: pointer; transition: all 0.15s; }
   .btn-primary { background: var(--accent); color: #fff; }
   .btn-primary:hover { background: #b385ff; transform: translateY(-1px); }
@@ -81,6 +103,15 @@
   .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
   .btn-danger-ghost { background: transparent; color: var(--red); border: 1px solid transparent; padding: 6px 10px; font-size: 16px; }
   .btn-danger-ghost:hover { background: rgba(245,110,110,0.1); border-color: var(--red); }
+  .btn-add { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; border-radius: 8px; padding: 9px 16px; font-family: var(--sans); font-weight: 700; font-size: 13px; cursor: pointer; white-space: nowrap; transition: all 0.15s; align-self: flex-end; }
+  .btn-add:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  .status-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px 24px; margin-bottom: 28px; display: flex; align-items: center; justify-content: space-between; animation: fadeDown 0.4s ease both; }
+  .status-left { display: flex; align-items: center; gap: 12px; }
+  .status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); flex-shrink: 0; }
+  .status-dot.inactive { background: var(--muted); box-shadow: none; }
+  .status-text { font-family: var(--mono); font-size: 13px; }
+  .status-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 2px; }
 
   .section { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 20px; animation: fadeDown 0.4s 0.1s ease both; }
   .section-title { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
@@ -90,6 +121,15 @@
   .cmd-chip .cmd { font-family: var(--mono); font-size: 12px; color: var(--accent); font-weight: 600; }
   .cmd-chip .desc { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 3px; }
 
+  .save-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+  .save-bar-left { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .save-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); transition: background 0.3s; }
+  .save-dot.dirty { background: #f5a56e; }
+  .keybind-hint { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .kbd { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; font-family: var(--mono); font-size: 10px; color: var(--muted); }
+
+  .mod-notice { background: rgba(159,110,245,0.08); border: 1px solid rgba(159,110,245,0.2); border-radius: 8px; padding: 10px 14px; font-family: var(--mono); font-size: 12px; color: var(--accent); margin-bottom: 14px; }
+
   .form-row { display: grid; grid-template-columns: 150px 1fr 130px auto; gap: 8px; align-items: end; margin-bottom: 16px; }
   .field { display: flex; flex-direction: column; gap: 4px; }
   label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
@@ -97,9 +137,6 @@
   input:focus, select:focus { border-color: var(--accent); }
   input::placeholder { color: var(--muted); }
   select option { background: var(--surface2); }
-
-  .btn-add { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; border-radius: 8px; padding: 9px 16px; font-family: var(--sans); font-weight: 700; font-size: 13px; cursor: pointer; white-space: nowrap; transition: all 0.15s; align-self: flex-end; }
-  .btn-add:hover { opacity: 0.9; transform: translateY(-1px); }
 
   .command-list { display: flex; flex-direction: column; gap: 6px; }
   .command-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; overflow: hidden; transition: border-color 0.15s; }
@@ -127,157 +164,29 @@
   .toggle-switch input:checked + .toggle-track { background: var(--accent); }
   .toggle-switch input:checked + .toggle-track::after { left: 19px; background: #fff; }
 
-  .save-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
-  .save-bar-left { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
-  .save-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); transition: background 0.3s; }
-  .save-dot.dirty { background: #f5a56e; }
-
-  .mod-notice { background: rgba(159,110,245,0.08); border: 1px solid rgba(159,110,245,0.2); border-radius: 8px; padding: 10px 14px; font-family: var(--mono); font-size: 12px; color: var(--accent); margin-bottom: 14px; }
+  .role-badge { font-family: var(--mono); font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+  .role-broadcaster { background: rgba(245,110,245,0.12); color: var(--accent2); }
+  .role-mod { background: rgba(159,110,245,0.15); color: var(--accent); }
 
   .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 11px 18px; font-family: var(--mono); font-size: 13px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); z-index: 100; display: flex; align-items: center; gap: 8px; }
   .toast.show { transform: translateX(-50%) translateY(0); }
 
-
-  .kofi-btn {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: #ff5e5b; color: #fff; font-family: var(--sans);
-    font-weight: 700; font-size: 12px; padding: 6px 14px;
-    border-radius: 7px; text-decoration: none; transition: all 0.15s;
-    white-space: nowrap;
-  }
-  .kofi-btn:hover { background: #ff7875; transform: translateY(-1px); }
-
-  /* Profile menu */
-  .profile-menu-wrap { position: relative; }
-  .profile-btn {
-    display: flex; align-items: center; gap: 8px;
-    background: transparent; border: 1px solid var(--border);
-    border-radius: 8px; padding: 5px 10px 5px 6px;
-    cursor: pointer; color: var(--text); transition: all 0.15s;
-  }
-  .profile-btn:hover { border-color: var(--accent); }
-  .profile-dropdown {
-    position: absolute; top: calc(100% + 8px); right: 0;
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 10px; min-width: 200px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-    z-index: 100; overflow: hidden;
-    opacity: 0; transform: translateY(-8px);
-    pointer-events: none; transition: all 0.15s;
-  }
-  .profile-dropdown.open { opacity: 1; transform: translateY(0); pointer-events: all; }
-  .dropdown-label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; padding: 10px 14px 6px; }
-  .dropdown-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 9px 14px; font-family: var(--mono); font-size: 13px;
-    color: var(--text); cursor: pointer; transition: background 0.1s;
-    text-decoration: none; border: none; background: none; width: 100%; text-align: left;
-  }
-  .dropdown-item:hover { background: var(--surface2); }
-  .dropdown-item.active { color: var(--accent); }
-  .dropdown-item .item-role { font-size: 10px; color: var(--muted); margin-left: auto; }
-  .dropdown-divider { height: 1px; background: var(--border); margin: 4px 0; }
-  .dropdown-logout { color: var(--muted); }
-  .dropdown-logout:hover { color: var(--red); }
-
-  /* Active channel bar */
-  .active-channel-bar {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
-    padding: 14px 20px; margin-bottom: 20px;
-    display: flex; align-items: center; justify-content: space-between;
-    animation: fadeDown 0.4s ease both;
-  }
-  .switcher-label { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
-
-
-  /* Timers */
-  .timer-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; overflow: hidden; margin-bottom: 6px; }
-  .timer-main { display: grid; grid-template-columns: 160px 60px 80px 100px auto auto; gap: 0; align-items: stretch; }
-  .timer-cell { padding: 12px 14px; border-right: 1px solid var(--border); display: flex; align-items: center; font-family: var(--mono); font-size: 12px; }
-  .timer-cell:last-child { border-right: none; gap: 6px; }
-  .timer-name { font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .timer-type-badge { font-size: 10px; font-weight: 600; padding: 3px 7px; border-radius: 4px; text-transform: uppercase; white-space: nowrap; }
-  .type-interval { background: rgba(110,245,160,0.12); color: var(--green); }
-  .type-countdown { background: rgba(245,180,110,0.12); color: #f5b46e; }
-  .timer-edit { background: #18181c; padding: 14px; border-top: 1px solid var(--border); display: none; }
-  .timer-edit.open { display: block; }
-  .timer-edit-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-  .timer-edit-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
-  .timer-live-row { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 10px; }
-  .live-badge { font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
-  .live-yes { background: rgba(110,245,160,0.12); color: var(--green); }
-  .live-no { background: rgba(106,106,122,0.2); color: var(--muted); }
-
-  @media (max-width: 600px) {
-    .timer-main { grid-template-columns: 1fr auto auto; }
-    .timer-cell:nth-child(2), .timer-cell:nth-child(3), .timer-cell:nth-child(4) { display: none; }
-    .timer-edit-grid { grid-template-columns: 1fr; }
-  }
-
-  .keybind-hint {
-    display: inline-flex; align-items: center; gap: 6px;
-    font-family: var(--mono); font-size: 11px; color: var(--muted);
-  }
-  .kbd {
-    background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 4px; padding: 2px 6px; font-family: var(--mono);
-    font-size: 10px; color: var(--muted);
-  }
-
-  /* Scope warning banner */
-  .scope-banner {
-    display: none; align-items: center; justify-content: space-between;
-    gap: 14px; background: rgba(245,180,110,0.08);
-    border: 1px solid rgba(245,180,110,0.3); border-radius: 12px;
-    padding: 14px 20px; margin-bottom: 20px;
-    animation: fadeDown 0.4s ease both;
-  }
-  .scope-banner.show { display: flex; }
-  .scope-banner-left { display: flex; align-items: center; gap: 10px; }
-  .scope-banner-icon { font-size: 20px; }
-  .scope-banner-text { font-family: var(--mono); font-size: 12px; }
-  .scope-banner-text strong { color: var(--orange); display: block; margin-bottom: 2px; }
-  .scope-banner-text span { color: var(--muted); }
-  .btn-reauth {
-    background: var(--orange); color: #000; font-family: var(--sans);
-    font-weight: 700; font-size: 12px; padding: 8px 16px;
-    border-radius: 8px; border: none; cursor: pointer;
-    white-space: nowrap; transition: all 0.15s; text-decoration: none;
-    display: inline-block;
-  }
-  .btn-reauth:hover { opacity: 0.9; transform: translateY(-1px); }
-
-  /* Channel indicator in topbar */
-  .topbar-channel-info {
-    display: flex; align-items: center; gap: 8px;
-    background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 8px; padding: 5px 12px;
-    font-family: var(--mono); font-size: 12px;
-  }
-  .topbar-channel-avatar {
-    width: 22px; height: 22px; border-radius: 50%;
-    border: 1px solid var(--border); object-fit: cover;
-  }
-  .topbar-channel-name { color: var(--text); font-weight: 600; }
-  .topbar-role-chip {
-    font-size: 10px; font-weight: 700; padding: 2px 7px;
-    border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;
-  }
-  .chip-broadcaster { background: rgba(245,110,245,0.12); color: var(--accent2); }
-  .chip-mod { background: rgba(159,110,245,0.15); color: var(--accent); }
   @keyframes fadeDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
+  @media (max-width: 768px) {
+    .sidebar { position: fixed; left: 0; top: 0; bottom: 0; height: 100vh; z-index: 41; transform: translateX(-100%); transition: transform 0.25s ease; }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-overlay.open { display: block; }
+    .hamburger { display: flex; }
+  }
   @media (max-width: 600px) {
     nav { padding: 0 16px; }
     .username { display: none; }
     .container { padding: 20px 12px 60px; }
     .status-card { flex-direction: column; align-items: flex-start; gap: 14px; }
     .status-card .btn { width: 100%; text-align: center; }
-    .channel-switcher { flex-direction: column; align-items: flex-start; }
-    .channel-select { width: 100%; }
     .commands-ref { grid-template-columns: 1fr 1fr; }
     .save-bar { flex-direction: column; align-items: flex-start; }
-    .save-bar .btn { width: 100%; text-align: center; }
     .form-row { grid-template-columns: 1fr 1fr; }
     .form-row .field:nth-child(2) { grid-column: 1 / -1; }
     .btn-add { width: 100%; grid-column: 1 / -1; }
@@ -288,110 +197,6 @@
     .card-edit .btn { width: 100%; }
     input, select { font-size: 16px; }
   }
-
-  /* ── Layout ── */
-  body { display: flex; flex-direction: column; }
-
-  .layout { display: flex; flex: 1; min-height: calc(100vh - 60px); }
-
-  /* Sidebar */
-  .sidebar {
-    width: 220px; flex-shrink: 0;
-    background: var(--surface); border-right: 1px solid var(--border);
-    display: flex; flex-direction: column;
-    position: sticky; top: 112px; height: calc(100vh - 112px); overflow-y: auto;
-  }
-
-  .sidebar-group { padding: 16px 0 4px; }
-  .sidebar-group-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 4px 16px 8px; cursor: pointer; user-select: none;
-  }
-  .sidebar-group-label { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1.2px; }
-  .sidebar-chevron { color: var(--muted); font-size: 10px; transition: transform 0.2s; }
-  .sidebar-group.collapsed .sidebar-chevron { transform: rotate(-90deg); }
-  .sidebar-group.collapsed .sidebar-group-items { display: none; }
-
-  .sidebar-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 9px 16px; font-family: var(--sans); font-size: 13px; font-weight: 500;
-    color: var(--muted); cursor: pointer; transition: all 0.12s;
-    border: none; background: none; width: 100%; text-align: left;
-    text-decoration: none; border-radius: 0; position: relative;
-  }
-  .sidebar-item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: transparent; border-radius: 0 2px 2px 0; transition: background 0.15s; }
-  .sidebar-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
-  .sidebar-item.active { color: var(--accent); background: rgba(159,110,245,0.08); }
-  .sidebar-item.active::before { background: var(--accent); }
-
-  .sidebar-item-icon {
-    width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center; font-size: 14px;
-    background: var(--surface2);
-  }
-  .sidebar-item.active .sidebar-item-icon { background: rgba(159,110,245,0.15); }
-
-  .sidebar-bottom { margin-top: auto; border-top: 1px solid var(--border); padding: 8px 0; }
-
-  /* Main content */
-  .main-content { flex: 1; min-width: 0; }
-
-  /* Top bar inside main */
-  .topbar {
-    height: 52px; background: var(--surface); border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 24px; position: sticky; top: 0; z-index: 5;
-  }
-  .topbar-left { display: flex; align-items: center; gap: 10px; }
-  .topbar-page-title { font-weight: 700; font-size: 15px; }
-  .topbar-channel { display: flex; align-items: center; gap: 8px; }
-
-  .container { padding: 28px 28px 80px; max-width: 860px; }
-
-  /* Mobile overlay for sidebar */
-  .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 40; }
-  .sidebar-overlay.open { display: block; }
-  .hamburger {
-    display: none; background: none; border: none; cursor: pointer; padding: 8px;
-    flex-direction: column; gap: 5px; border-radius: 6px;
-  }
-  .hamburger span { display: block; width: 20px; height: 2px; background: var(--text); border-radius: 2px; }
-
-  /* Section visibility */
-  .page-section { display: none; }
-  .page-section.visible { display: block; }
-
-  @media (max-width: 768px) {
-    .sidebar {
-      position: fixed; left: 0; top: 0; bottom: 0; height: 100vh;
-      z-index: 41; transform: translateX(-100%); transition: transform 0.25s ease;
-      top: 0;
-    }
-    .sidebar.open { transform: translateX(0); }
-    .sidebar-overlay { display: none; }
-    .sidebar-overlay.open { display: block; }
-    .hamburger { display: flex; }
-    .layout { flex-direction: column; }
-    .main-content { width: 100%; }
-    .topbar { top: 60px; }
-    .container { padding: 20px 14px 80px; }
-  }
-
-  /* Sliders */
-  .slider-field { display: flex; flex-direction: column; gap: 6px; }
-  .slider-wrap { display: flex; align-items: center; gap: 10px; }
-  .slider-wrap input[type=range] {
-    flex: 1; -webkit-appearance: none; appearance: none;
-    height: 4px; border-radius: 2px;
-    background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--val, 50%), var(--border) var(--val, 50%));
-    outline: none; cursor: pointer; border: none; padding: 0;
-  }
-  .slider-wrap input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 16px; height: 16px;
-    border-radius: 50%; background: var(--accent); cursor: pointer;
-    box-shadow: 0 0 6px rgba(159,110,245,0.4);
-  }
-  .slider-val { font-family: var(--mono); font-size: 12px; color: var(--accent); min-width: 48px; text-align: right; }
 </style>
 </head>
 <body>
@@ -400,15 +205,13 @@
 
 <nav>
   <div style="display:flex;align-items:center;gap:12px;">
-    <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">
-      <span></span><span></span><span></span>
-    </button>
+    <button class="hamburger" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
     <div class="nav-brand"><span>⚡</span> NeoBot</div>
   </div>
   <div class="nav-right">
     <a href="https://ko-fi.com/neobotxyz" target="_blank" class="kofi-btn">☕ Support</a>
     <div class="profile-menu-wrap" id="profileMenuWrap">
-      <button class="profile-btn" id="profileBtn" onclick="toggleProfileMenu()">
+      <button class="profile-btn" onclick="toggleProfileMenu()">
         <img class="avatar" id="navAvatar" src="" alt="">
         <span class="username" id="navUsername">loading...</span>
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-left:2px;opacity:0.5;flex-shrink:0;"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
@@ -425,23 +228,17 @@
 
 <div class="layout">
 
-<!-- Sidebar -->
 <aside class="sidebar" id="sidebar">
-  <div class="sidebar-group" id="grp-main">
-    <div class="sidebar-group-header" onclick="toggleGroup('grp-main')">
+  <div class="sidebar-group">
+    <div class="sidebar-group-header" onclick="this.parentElement.classList.toggle('collapsed')">
       <span class="sidebar-group-label">Main</span>
       <span class="sidebar-chevron">▾</span>
     </div>
     <div class="sidebar-group-items">
-      <a href="/dashboard" class="sidebar-item active">
-        <span class="sidebar-item-icon">⚡</span> Commands
-      </a>
-      <a href="/timers" class="sidebar-item">
-        <span class="sidebar-item-icon">⏱️</span> Timers
-      </a>
+      <a href="/dashboard" class="sidebar-item active"><span class="sidebar-item-icon">⚡</span> Commands</a>
+      <a href="/timers" class="sidebar-item"><span class="sidebar-item-icon">⏱️</span> Timers</a>
     </div>
   </div>
-
   <div class="sidebar-group">
     <div class="sidebar-group-header" onclick="this.parentElement.classList.toggle('collapsed')">
       <span class="sidebar-group-label">Moderation</span>
@@ -452,24 +249,28 @@
     </div>
   </div>
   <div class="sidebar-bottom">
-    <a href="https://ko-fi.com/neobotxyz" target="_blank" class="sidebar-item">
-      <span class="sidebar-item-icon">☕</span> Support NeoBot
-    </a>
+    <a href="https://ko-fi.com/neobotxyz" target="_blank" class="sidebar-item"><span class="sidebar-item-icon">☕</span> Support NeoBot</a>
   </div>
 </aside>
 
-<!-- Main content -->
 <div class="main-content">
   <div class="topbar">
-    <span class="topbar-page-title">Commands</span>
-    <div class="topbar-channel-info" id="topbarChannelInfo" style="display:none;">
-      <img class="topbar-channel-avatar" id="topbarChannelAvatar" src="" alt="">
-      <span class="topbar-channel-name" id="topbarChannelName"></span>
-      <span class="topbar-role-chip" id="topbarRoleChip"></span>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="topbar-page-title">Commands</span>
+      <div class="topbar-channel-info" id="topbarChannelInfo" style="display:none;">
+        <img class="topbar-channel-avatar" id="topbarChannelAvatar" src="" alt="">
+        <span class="topbar-channel-name" id="topbarChannelName"></span>
+        <span class="topbar-role-chip" id="topbarRoleChip"></span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span id="statusDotTopbar" style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);display:inline-block;"></span>
+      <span style="font-family:var(--mono);font-size:12px;color:var(--muted);" id="topbarStatus">Active</span>
     </div>
   </div>
 
-  <!-- Scope warning banner -->
+<div class="container">
+
   <div class="scope-banner" id="scopeBanner">
     <div class="scope-banner-left">
       <span class="scope-banner-icon">⚠️</span>
@@ -480,7 +281,6 @@
     </div>
     <a href="/auth/twitch" class="btn-reauth">Re-authorize →</a>
   </div>
-<div class="container">
 
   <div class="status-card">
     <div class="status-left">
@@ -504,7 +304,7 @@
     </div>
   </div>
 
-  <div class="section" style="animation-delay:0.15s;">
+  <div class="section">
     <div class="save-bar">
       <div class="section-title" style="margin-bottom:0;">// Custom commands</div>
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -533,44 +333,10 @@
 
     <div class="command-list" id="commandList"></div>
   </div>
+
 </div>
-
-  </div><!-- end section-commands -->
-
-  <div class="page-section" id="section-timers">
-  <div class="section" style="animation-delay:0.2s;">
-    <div class="save-bar">
-      <div class="section-title" style="margin-bottom:0;">// Timers</div>
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <div class="save-bar-left"><div class="save-dot" id="timerSaveDot"></div><span id="timerSaveText">Saved</span></div>
-        <button class="btn btn-primary" onclick="saveTimers()">Save Timers</button>
-      </div>
-    </div>
-
-    <div class="form-row" style="margin-top:14px;grid-template-columns:1fr 1fr 100px auto;">
-      <div class="field"><label>Timer name</label><input type="text" id="newTimerName" placeholder="Social links" /></div>
-      <div class="field"><label>Message</label><input type="text" id="newTimerMsg" placeholder="Follow me on Twitter!" /></div>
-      <div class="field"><label>Type</label>
-        <select id="newTimerType">
-          <option value="interval">Interval</option>
-          <option value="countdown">Countdown</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Minutes: <span id="newTimerMinVal">30</span></label>
-        <div class="slider-wrap">
-          <input type="range" id="newTimerMin" min="1" max="180" value="30" oninput="updateSliderVal(this,'newTimerMinVal')" style="--val:16%" />
-        </div>
-      </div>
-      <button class="btn-add" onclick="addTimer()">+ Add</button>
-    </div>
-
-    <div id="timerList"></div>
-  </div>
-  </div><!-- end section-timers -->
-</div><!-- end container -->
-</div><!-- end main-content -->
-</div><!-- end layout -->
+</div>
+</div>
 
 <div class="toast" id="toast"><span id="toastIcon">✅</span><span id="toastMsg"></span></div>
 
@@ -580,6 +346,20 @@
   let dirty = false;
   let selectedChannelId = null;
   let selectedChannelRole = 'broadcaster';
+
+  function setTopbar(channel) {
+    const el = document.getElementById('topbarChannelInfo');
+    if (el) el.style.display = 'flex';
+    const av = document.getElementById('topbarChannelAvatar');
+    if (av) av.src = channel.profileImage || userData.profileImage || '';
+    const nm = document.getElementById('topbarChannelName');
+    if (nm) nm.textContent = channel.displayName;
+    const ch = document.getElementById('topbarRoleChip');
+    if (ch) {
+      ch.textContent = channel.role === 'broadcaster' ? 'Your channel' : 'Moderating';
+      ch.className = `topbar-role-chip ${channel.role === 'broadcaster' ? 'chip-broadcaster' : 'chip-mod'}`;
+    }
+  }
 
   async function init() {
     const res = await fetch('/api/me');
@@ -592,26 +372,12 @@
     selectedChannelId = userData.id;
     selectedChannelRole = 'broadcaster';
 
-    // Set topbar channel info on load
-    const tbInfo = document.getElementById('topbarChannelInfo');
-    if (tbInfo) tbInfo.style.display = 'flex';
-    const tbAvatar = document.getElementById('topbarChannelAvatar');
-    if (tbAvatar) tbAvatar.src = userData.profileImage || '';
-    const tbName = document.getElementById('topbarChannelName');
-    if (tbName) tbName.textContent = userData.displayName;
-    const tbChip = document.getElementById('topbarRoleChip');
-    if (tbChip) { tbChip.textContent = 'Your channel'; tbChip.className = 'topbar-role-chip chip-broadcaster'; }
-
+    setTopbar({ profileImage: userData.profileImage, displayName: userData.displayName, role: 'broadcaster' });
     buildChannelList(userData.channels || []);
     updateRoleBadge();
     updateStatusUI();
-
-
-
-
     await loadChannelCommands(selectedChannelId);
 
-    // Silently refresh modded channels in background
     fetch('/api/refresh-channels', { method: 'POST' })
       .then(r => r.json())
       .then(data => {
@@ -626,73 +392,35 @@
   }
 
   function buildChannelList(channels) {
-    const list = document.getElementById('channelList');
-    list.innerHTML = channels.map(c => `
-      <button class="dropdown-item ${c.id === selectedChannelId ? 'active' : ''}" onclick="switchChannel('${c.id}','${c.role}')">
+    document.getElementById('channelList').innerHTML = channels.map(c => `
+      <button class="dropdown-item ${c.id === selectedChannelId ? 'active' : ''}" onclick="switchChannel('${c.id}','${c.role}','${c.displayName}','${c.profileImage || ''}')">
         ${c.displayName}
         <span class="item-role">${c.role === 'broadcaster' ? 'Your channel' : 'Mod'}</span>
       </button>
     `).join('');
   }
 
-  function toggleProfileMenu() {
-    document.getElementById('profileDropdown').classList.toggle('open');
-  }
-
-  document.addEventListener('click', e => {
-    const wrap = document.getElementById('profileMenuWrap');
-    if (wrap && !wrap.contains(e.target)) {
-      document.getElementById('profileDropdown').classList.remove('open');
-    }
-  });
-
-  function updateRoleBadge() {
-    const badge = document.getElementById('roleBadge');
-    badge.textContent = selectedChannelRole === 'broadcaster' ? 'Broadcaster' : 'Moderator';
-    badge.className = `role-badge role-${selectedChannelRole}`;
-    document.getElementById('modNotice').style.display = selectedChannelRole === 'mod' ? 'block' : 'none';
-    const channels = userData ? (userData.channels || []) : [];
-    const active = channels.find(c => c.id === selectedChannelId);
-    const sidebarChan = document.getElementById('sidebarChannel');
-    if (sidebarChan) sidebarChan.textContent = active ? active.displayName : '';
-
-  }
-
-  async function switchChannel(channelId, role) {
+  async function switchChannel(channelId, role, displayName, profileImage) {
     selectedChannelId = channelId;
     selectedChannelRole = role;
     document.getElementById('profileDropdown').classList.remove('open');
     buildChannelList(userData.channels || []);
     updateRoleBadge();
-
-    const isOwn = selectedChannelId === userData.id;
+    const isOwn = channelId === userData.id;
     document.getElementById('toggleBtn').style.display = isOwn ? '' : 'none';
     updateStatusUI();
-
-    // Update topbar — same as timers page
-    // Update topbar — same as timers page
-    const ch = (userData.channels || []).find(c => c.id === channelId);
-    console.log('switchChannel ch:', JSON.stringify(ch));  // ← add this
-      const tbInfo = document.getElementById('topbarChannelInfo');
-      if (tbInfo) tbInfo.style.display = 'flex';
-      const tbAvatar = document.getElementById('topbarChannelAvatar');
-      if (tbAvatar) tbAvatar.src = ch.profileImage || userData.profileImage || '';
-      const tbName = document.getElementById('topbarChannelName');
-      if (tbName) tbName.textContent = ch.displayName;
-      const tbChip = document.getElementById('topbarRoleChip');
-      if (tbChip) { tbChip.textContent = role === 'broadcaster' ? 'Your channel' : 'Moderating'; tbChip.className = `topbar-role-chip ${role === 'broadcaster' ? 'chip-broadcaster' : 'chip-mod'}`; }
-    }
-
-    await loadChannelCommands(selectedChannelId);
+    setTopbar({ profileImage: profileImage || userData.profileImage, displayName, role });
+    await loadChannelCommands(channelId);
   }
 
-  async function loadChannelCommands(channelId) {
-    const res = await fetch(`/api/commands/${channelId}`);
-    if (!res.ok) { showToast('❌', 'Could not load commands'); return; }
-    const data = await res.json();
-    commands = data.commands || [];
-    setDirty(false);
-    renderCommands();
+  function updateRoleBadge() {
+    const badge = document.getElementById('roleBadge');
+    if (badge) {
+      badge.textContent = selectedChannelRole === 'broadcaster' ? 'Broadcaster' : 'Moderator';
+      badge.className = `role-badge role-${selectedChannelRole}`;
+    }
+    const notice = document.getElementById('modNotice');
+    if (notice) notice.style.display = selectedChannelRole === 'mod' ? 'block' : 'none';
   }
 
   function updateStatusUI() {
@@ -703,7 +431,6 @@
     const topText = document.getElementById('topbarStatus');
     const isOwn = selectedChannelId === userData.id;
     const active = isOwn ? userData.active : true;
-
     if (active) {
       dot.classList.remove('inactive');
       text.textContent = 'Bot is active in this channel';
@@ -717,9 +444,7 @@
       if (topText) topText.textContent = 'Inactive';
       if (isOwn) { btn.textContent = 'Activate'; btn.className = 'btn btn-primary'; }
     }
-
-    const since = new Date(userData.joinedAt).toLocaleDateString();
-    document.getElementById('statusSub').textContent = `Connected since ${since}`;
+    document.getElementById('statusSub').textContent = `Connected since ${new Date(userData.joinedAt).toLocaleDateString()}`;
   }
 
   async function toggleBot() {
@@ -730,27 +455,37 @@
     showToast(userData.active ? '✅' : '⏹️', userData.active ? 'Bot activated' : 'Bot deactivated');
   }
 
+  function toggleProfileMenu() { document.getElementById('profileDropdown').classList.toggle('open'); }
+  document.addEventListener('click', e => {
+    const wrap = document.getElementById('profileMenuWrap');
+    if (wrap && !wrap.contains(e.target)) document.getElementById('profileDropdown').classList.remove('open');
+  });
+
   function setDirty(val) {
     dirty = val;
     document.getElementById('saveDot').classList.toggle('dirty', val);
     document.getElementById('saveText').textContent = val ? 'Unsaved changes' : 'Saved';
   }
 
+  async function loadChannelCommands(channelId) {
+    const res = await fetch(`/api/commands/${channelId}`);
+    if (!res.ok) { showToast('❌', 'Could not load commands'); return; }
+    const data = await res.json();
+    commands = data.commands || [];
+    setDirty(false);
+    renderCommands();
+  }
+
   function renderCommands() {
     const list = document.getElementById('commandList');
-    if (!commands.length) {
-      list.innerHTML = '<div class="empty">No custom commands yet — add one above</div>';
-      return;
-    }
+    if (!commands.length) { list.innerHTML = '<div class="empty">No custom commands yet — add one above</div>'; return; }
     list.innerHTML = commands.map((cmd, i) => `
       <div class="command-card" id="card-${i}">
         <div class="card-main">
           <div class="card-cell"><span class="cmd-name">${esc(cmd.command)}</span></div>
           <div class="card-cell" style="flex:1;"><span class="cmd-response">${esc(cmd.response)}</span></div>
           <div class="card-cell"><span class="perm-badge perm-${cmd.permission}">${permLabel(cmd.permission)}</span></div>
-          <div class="card-cell">
-            <label class="toggle-switch"><input type="checkbox" ${cmd.enabled !== false ? 'checked' : ''} onchange="toggleEnabled(${i},this.checked)"><span class="toggle-track"></span></label>
-          </div>
+          <div class="card-cell"><label class="toggle-switch"><input type="checkbox" ${cmd.enabled !== false ? 'checked' : ''} onchange="toggleEnabled(${i},this.checked)"><span class="toggle-track"></span></label></div>
           <div class="card-cell">
             <button class="btn btn-ghost" style="padding:5px 10px;font-size:12px;" onclick="toggleEdit(${i})">Edit</button>
             <button class="btn-danger-ghost btn" onclick="deleteCmd(${i})">×</button>
@@ -792,14 +527,7 @@
     showToast('✅', `Added ${name}`);
   }
 
-  function deleteCmd(i) {
-    const name = commands[i].command;
-    commands.splice(i, 1);
-    setDirty(true);
-    renderCommands();
-    showToast('🗑️', `Deleted ${name}`);
-  }
-
+  function deleteCmd(i) { const name = commands[i].command; commands.splice(i, 1); setDirty(true); renderCommands(); showToast('🗑️', `Deleted ${name}`); }
   function toggleEnabled(i, val) { commands[i].enabled = val; setDirty(true); }
 
   function toggleEdit(i) {
@@ -819,18 +547,27 @@
     commands[i] = { ...commands[i], command: cmd.startsWith('!') ? cmd : '!'+cmd, response: resp, permission: perm };
     setDirty(true);
     renderCommands();
-    showToast('✅', `Updated`);
+    showToast('✅', 'Updated');
   }
 
   async function saveCommands() {
     const res = await fetch(`/api/commands/${selectedChannelId}`, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ commands })
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ commands })
     });
     if (res.ok) { setDirty(false); showToast('💾', 'Commands saved!'); }
     else showToast('❌', 'Failed to save');
   }
+
+  async function checkScopes() {
+    try {
+      const res = await fetch('/api/check-scopes');
+      const data = await res.json();
+      if (!data.ok) document.getElementById('scopeBanner').classList.add('show');
+    } catch (e) {}
+  }
+
+  function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('open'); }
+  function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); }
 
   let toastTimer;
   function showToast(icon, msg) {
@@ -843,193 +580,10 @@
   }
 
   document.getElementById('newResp').addEventListener('keydown', e => { if (e.key === 'Enter') addCommand(); });
-
-  // ── Sidebar nav ─────────────────────────────────────────────
-  function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('open');
-    document.getElementById('sidebarOverlay').classList.toggle('open');
-  }
-  function closeSidebar() {
-    document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('sidebarOverlay').classList.remove('open');
-  }
-  function toggleGroup(id) {
-    document.getElementById(id).classList.toggle('collapsed');
-  }
-
-  // ── Timers ──────────────────────────────────────────────────
-  let timers = [];
-  let timerDirty = false;
-
-  function setTimerDirty(val) {
-    timerDirty = val;
-    document.getElementById('timerSaveDot').classList.toggle('dirty', val);
-    document.getElementById('timerSaveText').textContent = val ? 'Unsaved changes' : 'Saved';
-  }
-
-  async function loadTimers(channelId) {
-    const res = await fetch(`/api/timers/${channelId}`);
-    if (!res.ok) return;
-    const data = await res.json();
-    timers = data.timers || [];
-    setTimerDirty(false);
-    renderTimers();
-  }
-
-  function renderTimers() {
-    const list = document.getElementById('timerList');
-    if (!timers.length) {
-      list.innerHTML = '<div class="empty">No timers yet — add one above</div>';
-      return;
-    }
-    list.innerHTML = timers.map((t, i) => `
-      <div class="timer-card" id="tcrd-${i}">
-        <div class="timer-main">
-          <div class="timer-cell"><span class="timer-name">${esc(t.name)}</span></div>
-          <div class="timer-cell"><span class="timer-type-badge type-${t.type}">${t.type}</span></div>
-          <div class="timer-cell" style="color:var(--muted);">${t.type === 'interval' ? t.intervalMinutes + 'm' : t.countdownMinutes + 'm'}</div>
-          <div class="timer-cell"><span class="live-badge ${t.liveOnly ? 'live-yes' : 'live-no'}">${t.liveOnly ? 'Live only' : 'Always'}</span></div>
-          <div class="timer-cell">
-            <label class="toggle-switch"><input type="checkbox" ${t.enabled !== false ? 'checked' : ''} onchange="toggleTimer(${i},this.checked)"><span class="toggle-track"></span></label>
-          </div>
-          <div class="timer-cell">
-            <button class="btn btn-ghost" style="padding:5px 10px;font-size:12px;" onclick="toggleTimerEdit(${i})">Edit</button>
-            ${t.type === 'countdown' ? `<button class="btn btn-ghost" style="padding:5px 10px;font-size:12px;" onclick="resetCountdown(${i})" title="Reset countdown">↺</button>` : ''}
-            <button class="btn-danger-ghost btn" onclick="deleteTimer(${i})">×</button>
-          </div>
-        </div>
-        <div class="timer-edit" id="tedit-${i}">
-          <div class="timer-edit-grid">
-            <div class="field"><label>Name</label><input type="text" id="tn-${i}" value="${esc(t.name)}" /></div>
-            <div class="field"><label>Type</label>
-              <select id="tt-${i}" onchange="renderTimerEditFields(${i})">
-                <option value="interval" ${t.type==='interval'?'selected':''}>Interval</option>
-                <option value="countdown" ${t.type==='countdown'?'selected':''}>Countdown</option>
-              </select>
-            </div>
-            <div class="slider-field" id="tmin-field-${i}">
-              <label id="tmin-label-${i}">${t.type === 'interval' ? 'Every (minutes)' : 'Countdown (minutes)'}</label>
-              <div class="slider-wrap">
-                <input type="range" id="tmin-${i}" min="1" max="180" value="${t.type === 'interval' ? (t.intervalMinutes||30) : (t.countdownMinutes||60)}"
-                  oninput="updateSliderVal(this,'tmin-val-${i}')"
-                  style="--val:${Math.round(((t.type==='interval'?(t.intervalMinutes||30):(t.countdownMinutes||60))-1)/179*100)}%" />
-                <span class="slider-val" id="tmin-val-${i}">${t.type === 'interval' ? (t.intervalMinutes||30) : (t.countdownMinutes||60)}m</span>
-              </div>
-            </div>
-          </div>
-          <div class="field" style="margin-bottom:10px;"><label>Message</label><input type="text" id="tm-${i}" value="${esc(t.message)}" /></div>
-          <div class="timer-edit-row">
-            <div class="timer-live-row">
-              <label class="toggle-switch"><input type="checkbox" id="tlive-${i}" ${t.liveOnly ? 'checked' : ''}><span class="toggle-track"></span></label>
-              Only fire when channel is live
-            </div>
-            <button class="btn btn-primary" onclick="saveTimerEdit(${i})">Save</button>
-          </div>
-        </div>
-      </div>
-    `).join('');
-  }
-
-  function renderTimerEditFields(i) {
-    const type = document.getElementById(`tt-${i}`).value;
-    document.getElementById(`tmin-label-${i}`).textContent = type === 'interval' ? 'Every (minutes)' : 'Countdown (minutes)';
-  }
-
-  function addTimer() {
-    const name = document.getElementById('newTimerName').value.trim();
-    const msg = document.getElementById('newTimerMsg').value.trim();
-    const type = document.getElementById('newTimerType').value;
-    if (!name || !msg) { showToast('⚠️', 'Fill in name and message'); return; }
-    const id = 'timer_' + Date.now();
-    const mins = parseInt(document.getElementById('newTimerMin').value) || 30;
-    timers.push({
-      id, name, message: msg, type,
-      intervalMinutes: type === 'interval' ? mins : 30,
-      countdownMinutes: type === 'countdown' ? mins : 60,
-      liveOnly: true, enabled: true
-    });
-    document.getElementById('newTimerName').value = '';
-    document.getElementById('newTimerMsg').value = '';
-    setTimerDirty(true);
-    renderTimers();
-    showToast('✅', `Added timer: ${name}`);
-  }
-
-  function deleteTimer(i) {
-    timers.splice(i, 1);
-    setTimerDirty(true);
-    renderTimers();
-    showToast('🗑️', 'Timer deleted');
-  }
-
-  function toggleTimer(i, val) { timers[i].enabled = val; setTimerDirty(true); }
-
-  function toggleTimerEdit(i) {
-    const el = document.getElementById(`tedit-${i}`);
-    const isOpen = el.classList.contains('open');
-    document.querySelectorAll('.timer-edit.open').forEach(e => e.classList.remove('open'));
-    if (!isOpen) el.classList.add('open');
-  }
-
-  function saveTimerEdit(i) {
-    const type = document.getElementById(`tt-${i}`).value;
-    const mins = parseInt(document.getElementById(`tmin-${i}`).value) || 30;
-    timers[i] = {
-      ...timers[i],
-      name: document.getElementById(`tn-${i}`).value.trim(),
-      message: document.getElementById(`tm-${i}`).value.trim(),
-      type,
-      intervalMinutes: type === 'interval' ? mins : timers[i].intervalMinutes,
-      countdownMinutes: type === 'countdown' ? mins : timers[i].countdownMinutes,
-      liveOnly: document.getElementById(`tlive-${i}`).checked,
-    };
-    setTimerDirty(true);
-    renderTimers();
-    showToast('✅', 'Timer updated');
-  }
-
-  async function resetCountdown(i) {
-    const timer = timers[i];
-    await fetch(`/api/timers/${selectedChannelId}/reset/${timer.id}`, { method: 'POST' });
-    showToast('↺', `Countdown reset: ${timer.name}`);
-  }
-
-  async function saveTimers() {
-    const res = await fetch(`/api/timers/${selectedChannelId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ timers })
-    });
-    if (res.ok) { setTimerDirty(false); showToast('💾', 'Timers saved!'); }
-    else showToast('❌', 'Failed to save timers');
-  }
-
-  // Patch loadChannelCommands to also load timers
-  const _origLoad = loadChannelCommands;
-  loadChannelCommands = async function(channelId) {
-    await _origLoad(channelId);
-    await loadTimers(channelId);
-  };
-
-  function updateSliderVal(slider, valId) {
-    const min = parseInt(slider.min), max = parseInt(slider.max), val = parseInt(slider.value);
-    const pct = Math.round((val - min) / (max - min) * 100);
-    slider.style.setProperty('--val', pct + '%');
-    const el = document.getElementById(valId);
-    if (el) el.textContent = val + (valId.includes('val') ? 'm' : '');
-  }
+  document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveCommands(); } });
 
   init();
   checkScopes();
-
-  // Ctrl+S to save
-  document.addEventListener('keydown', e => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-      e.preventDefault();
-      saveCommands();
-    }
-  });
-
 </script>
 </body>
 </html>
