@@ -320,28 +320,9 @@ client.on("message", async (channel, tags, message, self) => {
           const punishment = mod.punishment || 'delete';
           try {
             if (punishment === 'timeout') {
-              const secs = mod.timeoutSeconds || 60;
-              const token = await getValidToken(user.id);
-              const targetData = await helixGet(`/users?login=${tags.username}`, token);
-              const targetId = targetData.data?.[0]?.id;
-              if (targetId) {
-                await fetch(`https://api.twitch.tv/helix/moderation/bans?broadcaster_id=${user.id}&moderator_id=${user.id}`, {
-                  method: 'POST',
-                  headers: { Authorization: `Bearer ${token}`, 'Client-Id': process.env.TWITCH_CLIENT_ID, 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ data: { user_id: targetId, duration: secs, reason: 'Banned word detected' } })
-                });
-              }
+              await client.timeout(channel, tags.username, mod.timeoutSeconds || 60, 'Banned word detected');
             } else if (punishment === 'ban') {
-              const token = await getValidToken(user.id);
-              const targetData = await helixGet(`/users?login=${tags.username}`, token);
-              const targetId = targetData.data?.[0]?.id;
-              if (targetId) {
-                await fetch(`https://api.twitch.tv/helix/moderation/bans?broadcaster_id=${user.id}&moderator_id=${user.id}`, {
-                  method: 'POST',
-                  headers: { Authorization: `Bearer ${token}`, 'Client-Id': process.env.TWITCH_CLIENT_ID, 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ data: { user_id: targetId, reason: 'Banned word detected' } })
-                });
-              }
+              await client.ban(channel, tags.username, 'Banned word detected');
             } else {
               await client.deleteMessage(channel, tags.id);
             }
@@ -439,7 +420,7 @@ client.on("message", async (channel, tags, message, self) => {
 });
 
 // ── OAuth ────────────────────────────────────────────────────
-const SCOPES = "chat:read chat:edit channel:manage:broadcast channel:bot user:read:moderated_channels moderator:manage:banned_users moderator:manage:chat_messages";
+const SCOPES = "chat:read chat:edit channel:manage:broadcast channel:bot user:read:moderated_channels";
 
 app.get("/auth/twitch", (req, res) => {
   const state = crypto.randomBytes(16).toString("hex");
@@ -594,6 +575,30 @@ app.post("/api/moderation/:channelId", requireAuth, async (req, res) => {
   if (!await canEditChannel(req.session.userId, channelId)) return res.status(403).json({ error: "Not authorized" });
   await updateModeration(channelId, req.body.moderation || {});
   res.json({ ok: true });
+});
+
+// ── Scope check ──────────────────────────────────────────────
+const REQUIRED_SCOPES = [
+  'chat:read', 'chat:edit', 'channel:manage:broadcast',
+  'channel:bot', 'user:read:moderated_channels',
+  'moderator:manage:banned_users', 'moderator:manage:chat_messages'
+];
+
+app.get("/api/check-scopes", requireAuth, async (req, res) => {
+  try {
+    const user = await getUser(req.session.userId);
+    if (!user) return res.status(404).json({ error: "Not found" });
+    // Validate token against Twitch to get granted scopes
+    const r = await fetch("https://id.twitch.tv/oauth2/validate", {
+      headers: { Authorization: `OAuth ${user.access_token}` }
+    });
+    const data = await r.json();
+    const granted = data.scopes || [];
+    const missing = REQUIRED_SCOPES.filter(s => !granted.includes(s));
+    res.json({ ok: missing.length === 0, missing, granted });
+  } catch (e) {
+    res.json({ ok: false, missing: REQUIRED_SCOPES, granted: [] });
+  }
 });
 
 // ── Serve frontend ───────────────────────────────────────────
