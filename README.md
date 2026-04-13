@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-<src="https://github.com/vzepify/ghostbot/blob/main/FAQ.md" width="300" alt="FAQ">
+<img src="https://github.com/vzepify/ghostbot/blob/main/FAQ.md" width="300" alt="FAQ">
 </p>
 
 
