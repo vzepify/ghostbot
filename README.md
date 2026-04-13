@@ -6,18 +6,12 @@
   <a href="https://github.com/vzepify/ghostbot/blob/main/FAQ.md">FAQ</a>
 </p>
 
-MULTI-USE twitch bot that i made for ur friends or anyone who would like to use it.
-
-it has a dashboard.
-cool colors
-add/edit commands
-if ur a mod u can add commands
-for ur streamer.
 
 more to come.
 
-to use this bot go to 
-https://Neobotxyz.up.railway.app
+<p align="center">
+  <a href="https://neobotxyz.up.railway.app">USE THE BOT!!!</a>
+</p>
 
 
 
