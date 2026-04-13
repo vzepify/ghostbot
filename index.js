@@ -321,20 +321,34 @@ client.on("message", async (channel, tags, message, self) => {
           try {
             if (punishment === 'timeout' || punishment === 'ban') {
               const secs = mod.timeoutSeconds || 60;
-              const token = await getValidToken(user.id);
-              const targetData = await helixGet(`/users?login=${tags.username}`, token);
-              const targetId = targetData.data?.[0]?.id;
-              if (targetId) {
-                const body = punishment === 'ban'
-                  ? { data: { user_id: targetId, reason: 'Banned word detected' } }
-                  : { data: { user_id: targetId, duration: secs, reason: 'Banned word detected' } };
-                const banRes = await fetch(`https://api.twitch.tv/helix/moderation/bans?broadcaster_id=${user.id}&moderator_id=${user.id}`, {
-                  method: 'POST',
-                  headers: { Authorization: `Bearer ${token}`, 'Client-Id': process.env.TWITCH_CLIENT_ID, 'Content-Type': 'application/json' },
-                  body: JSON.stringify(body)
-                });
-                const banData = await banRes.json();
-                console.log(`[${channelName}] Ban/timeout result:`, JSON.stringify(banData));
+              try {
+                // Try IRC first (works when bot is mod)
+                if (punishment === 'ban') {
+                  await client.ban(channel, tags.username, 'Banned word detected');
+                } else {
+                  await client.timeout(channel, tags.username, secs, 'Banned word detected');
+                }
+              } catch (ircErr) {
+                // Fall back to Helix API
+                try {
+                  const token = await getValidToken(user.id);
+                  const targetData = await helixGet(`/users?login=${tags.username}`, token);
+                  const targetId = targetData.data?.[0]?.id;
+                  if (targetId) {
+                    const body = punishment === 'ban'
+                      ? { data: { user_id: targetId, reason: 'Banned word detected' } }
+                      : { data: { user_id: targetId, duration: secs, reason: 'Banned word detected' } };
+                    const banRes = await fetch(`https://api.twitch.tv/helix/moderation/bans?broadcaster_id=${user.id}&moderator_id=${user.id}`, {
+                      method: 'POST',
+                      headers: { Authorization: `Bearer ${token}`, 'Client-Id': process.env.TWITCH_CLIENT_ID, 'Content-Type': 'application/json' },
+                      body: JSON.stringify(body)
+                    });
+                    const banData = await banRes.json();
+                    console.log(`[${channelName}] Helix ban result:`, JSON.stringify(banData));
+                  }
+                } catch (helixErr) {
+                  console.error(`[${channelName}] Both IRC and Helix failed:`, helixErr.message);
+                }
               }
             } else {
               await client.deleteMessage(channel, tags.id);
