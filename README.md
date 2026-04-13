@@ -5,10 +5,8 @@
 
 
 
-                        [FAQ]
-                        (https://github.com/vzepify/ghostbot/blob/main/FAQ.md)
-
-
+[                        https://github.com/vzepify/ghostbot/blob/main/FAQ.md
+](FAQ)
 
 
 MULTI-USE twitch bot that i made for ur friends or anyone who would like to use it.
