@@ -45,4 +45,4 @@ mods and streamers have the functionality to add/edit any banned words from a ch
 there have also been some ui rework changes trying to make it as best as i can and friendly.
 
 currently broken: any chats that u moderate for banned words work if ur mod creates the banned words. 
-as of now u cannot create ur own banned words for ur own channel will fix that next update (hopefully)
+as of now u cannot create ur own banned words for ur own channel will fix that next update (FIXED)S
