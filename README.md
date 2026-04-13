@@ -1,9 +1,4 @@
 <p align="center">
-
-  ## License
-This project is not open source. Unauthorized copying or use is prohibited.
-
-<p align="center">
   <img src="https://github.com/vzepify/ghostbot/blob/main/public/favicon.png" alt="Logo" width="200"/>
 </p>
 <p align="center">
@@ -46,3 +41,7 @@ there have also been some ui rework changes trying to make it as best as i can a
 currently broken: any chats that u moderate for banned words work if ur mod creates the banned words. 
 as of now u cannot create ur own banned words for ur own channel will fix that next update (FIXED)S
 <p/>
+
+
+## License
+This project is not open source. Unauthorized copying or use is prohibited.
