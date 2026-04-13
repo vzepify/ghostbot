@@ -3,7 +3,8 @@
 </p>
 
 
-                 (https://github.com/vzepify/ghostbot/blob/main/FAQ.md) "FAQ"
+                 <img src="https://github.com/vzepify/ghostbot/blob/main/FAQ.md" width="300" alt="FAQ">
+</p>
 
 
 MULTI-USE twitch bot that i made for ur friends or anyone who would like to use it.
