@@ -10,8 +10,8 @@ NEOBOT - TWITCH BOT
   <a href="https://github.com/vzepify/ghostbot/blob/main/FAQ.md">FAQ</a>
 </p>
 
-
-more to come.
+<p align="center">
+MORE TO COME
 
 <p align="center">
   <a href="https://neobotxyz.up.railway.app">USE THE BOT!!!</a>
