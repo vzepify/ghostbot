@@ -23,7 +23,7 @@ more to come.
 to use this bot go to 
 https://Neobotxyz.up.railway.app
 
-faq (coming soon)
+faq <src="https://github.com/vzepify/ghostbot/blob/main/FAQ.md" alt="FAQ">
 
 v0.0.1: Added 2 new features.
 
