@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://ibb.co/6c6K24kw" width="300" alt="Logo">
+  <img src="https://github.com/vzepify/ghostbot/blob/main/public/favicon.png" alt="Logo" width="200"/>
 </p>
 
 <p align="center">
