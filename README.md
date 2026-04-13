@@ -2,7 +2,8 @@
   <img src="https://github.com/vzepify/ghostbot/blob/main/public/favicon.png" alt="Logo" width="200"/>
 </p>
 <p align="center">
-NEOBOT - TWITCH BOT
+  <a href="https://neobotxyz.up.railway.app">NEOBOT - TWITCH BOT</a>
+</p>
 
 
 
@@ -12,11 +13,6 @@ NEOBOT - TWITCH BOT
 
 <p align="center">
 MORE TO COME
-
-<p align="center">
-  <a href="https://neobotxyz.up.railway.app">USE THE BOT!!!</a>
-</p>
-
 
 <p align="center">
 v0.0.1: Added 2 new features.
