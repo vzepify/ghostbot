@@ -1,3 +1,4 @@
+<p align="center">
 ## License
 This project is not open source. Unauthorized copying or use is prohibited.
 
