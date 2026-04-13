@@ -1,5 +1,5 @@
 <p align="center">
-## License
+##License
 This project is not open source. Unauthorized copying or use is prohibited.
 
 <p align="center">
