@@ -2,9 +2,9 @@
   <img src="https://ibb.co/6c6K24kw" width="300" alt="Logo">
 </p>
 
-
+<p align="center">
 [FAQ](https://github.com/vzepify/ghostbot/blob/main/FAQ.md)
-
+<p/>
 
 MULTI-USE twitch bot that i made for ur friends or anyone who would like to use it.
 
