@@ -321,34 +321,65 @@ client.on("message", async (channel, tags, message, self) => {
           try {
             if (punishment === 'timeout' || punishment === 'ban') {
               const secs = mod.timeoutSeconds || 60;
+              // Find a token that has moderator:manage:banned_users scope
+              // Try broadcaster first, then any mod of this channel
+              let modToken = null;
+              let moderatorId = null;
+              // Check broadcaster token scopes
               try {
-                // Try IRC first (works when bot is mod)
-                if (punishment === 'ban') {
-                  await client.ban(channel, tags.username, 'Banned word detected');
-                } else {
-                  await client.timeout(channel, tags.username, secs, 'Banned word detected');
+                const broadcasterToken = await getValidToken(user.id);
+                const validate = await fetch('https://id.twitch.tv/oauth2/validate', {
+                  headers: { Authorization: `OAuth ${broadcasterToken}` }
+                });
+                const vData = await validate.json();
+                if ((vData.scopes || []).includes('moderator:manage:banned_users')) {
+                  modToken = broadcasterToken;
+                  moderatorId = user.id;
                 }
-              } catch (ircErr) {
-                // Fall back to Helix API
+              } catch(e) {}
+              // If broadcaster doesn't have scope, check all users who mod this channel
+              if (!modToken) {
                 try {
-                  const token = await getValidToken(user.id);
-                  const targetData = await helixGet(`/users?login=${tags.username}`, token);
+                  const allUsers = await pool.query('SELECT * FROM users');
+                  for (const u of allUsers.rows) {
+                    const moddedIds = (u.modded_channels || []).map(c => c.id);
+                    if (moddedIds.includes(user.id)) {
+                      const tok = await getValidToken(u.id).catch(() => null);
+                      if (!tok) continue;
+                      const validate = await fetch('https://id.twitch.tv/oauth2/validate', {
+                        headers: { Authorization: `OAuth ${tok}` }
+                      });
+                      const vData = await validate.json();
+                      if ((vData.scopes || []).includes('moderator:manage:banned_users')) {
+                        modToken = tok;
+                        moderatorId = u.id;
+                        break;
+                      }
+                    }
+                  }
+                } catch(e) {}
+              }
+              if (modToken && moderatorId) {
+                try {
+                  const targetData = await helixGet(`/users?login=${tags.username}`, modToken);
                   const targetId = targetData.data?.[0]?.id;
                   if (targetId) {
                     const body = punishment === 'ban'
                       ? { data: { user_id: targetId, reason: 'Banned word detected' } }
                       : { data: { user_id: targetId, duration: secs, reason: 'Banned word detected' } };
-                    const banRes = await fetch(`https://api.twitch.tv/helix/moderation/bans?broadcaster_id=${user.id}&moderator_id=${user.id}`, {
+                    const banRes = await fetch(`https://api.twitch.tv/helix/moderation/bans?broadcaster_id=${user.id}&moderator_id=${moderatorId}`, {
                       method: 'POST',
-                      headers: { Authorization: `Bearer ${token}`, 'Client-Id': process.env.TWITCH_CLIENT_ID, 'Content-Type': 'application/json' },
+                      headers: { Authorization: `Bearer ${modToken}`, 'Client-Id': process.env.TWITCH_CLIENT_ID, 'Content-Type': 'application/json' },
                       body: JSON.stringify(body)
                     });
                     const banData = await banRes.json();
-                    console.log(`[${channelName}] Helix ban result:`, JSON.stringify(banData));
+                    console.log(`[${channelName}] Ban/timeout result:`, JSON.stringify(banData));
                   }
-                } catch (helixErr) {
-                  console.error(`[${channelName}] Both IRC and Helix failed:`, helixErr.message);
+                } catch(e) {
+                  console.error(`[${channelName}] Ban/timeout error:`, e.message);
                 }
+              } else {
+                console.error(`[${channelName}] No token with moderator:manage:banned_users scope found`);
               }
             } else {
               await client.deleteMessage(channel, tags.id);
