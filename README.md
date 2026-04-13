@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-[FAQ](https://github.com/vzepify/ghostbot/blob/main/FAQ.md)
-<p/>
+  <a href="https://github.com/vzepify/ghostbot/blob/main/FAQ.md">FAQ</a>
+</p>
 
 MULTI-USE twitch bot that i made for ur friends or anyone who would like to use it.
 
