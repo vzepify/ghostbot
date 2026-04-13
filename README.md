@@ -1,3 +1,6 @@
+## License
+This project is not open source. Unauthorized copying or use is prohibited.
+
 <p align="center">
   <img src="https://github.com/vzepify/ghostbot/blob/main/public/favicon.png" alt="Logo" width="200"/>
 </p>
