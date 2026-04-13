@@ -1,6 +1,10 @@
 <p align="center">
   <img src="https://github.com/vzepify/ghostbot/blob/main/public/favicon.png" alt="Logo" width="200"/>
 </p>
+<p align="center">
+NEOBOT - TWITCH BOT
+
+
 
 <p align="center">
   <a href="https://github.com/vzepify/ghostbot/blob/main/FAQ.md">FAQ</a>
