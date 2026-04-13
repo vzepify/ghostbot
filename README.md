@@ -2,8 +2,8 @@
   <img src="https://ibb.co/6c6K24kw" width="300" alt="Logo">
 </p>
 
-
-                 <img src="https://github.com/vzepify/ghostbot/blob/main/FAQ.md" width="300" alt="FAQ">
+<p align="center">
+<url src="https://github.com/vzepify/ghostbot/blob/main/FAQ.md" width="300" alt="FAQ">
 </p>
 
 
