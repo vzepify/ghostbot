@@ -24,7 +24,7 @@
 | ⏱️ **Timers** | Schedule interval or countdown messages in chat |
 | 🚫 **Moderation** | Banned word filter with timeout, ban or delete punishment |
 | 🛡️ **Mod Support** | Mods can manage commands and moderation for channels they moderate |
-| 🌐 **API Variables** | Use `{http:url}` or `{valorant_rank:Name#Tag}` in command responses |
+| 🌐 **API Variables** | Use `{http:url}` in command responses |
 | 📱 **Mobile Friendly** | Dashboard works on desktop and mobile |
 
 ---
