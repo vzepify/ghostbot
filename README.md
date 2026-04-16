@@ -1,6 +1,6 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/vzepify/ghostbot/main/public/favicon.png" alt="NeoBot Logo" width="80" />
-</p>
+<div style="text-align:center">
+  <img src="https://raw.githubusercontent.com/vzepify/ghostbot/main/public/favicon.png" width="80" />
+</div>
 
 <h1 align="center">About</h1>
 
