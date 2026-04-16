@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/vzepify/ghostbot/blob/main/public/favicon.png" alt="NeoBot Logo" width="80"/>
+  <img src="https://raw.githubusercontent.com/vzepify/ghostbot/main/public/favicon.png" alt="NeoBot Logo" width="80" />
 </p>
 
 <h1 align="center">Frequently Asked Questions</h1>
