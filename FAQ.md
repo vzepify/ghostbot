@@ -9,10 +9,6 @@
     <img src="https://img.shields.io/badge/Add%20NeoBot-9f6ef5?style=for-the-badge&logo=twitch&logoColor=white" alt="Add NeoBot"/>
   </a>
   &nbsp;
-  <a href="https://github.com/vzepify/ghostbot/blob/main/README.md">
-    <img src="https://img.shields.io/badge/Back%20to%20README-141416?style=for-the-badge&logo=github&logoColor=white" alt="README"/>
-  </a>
-  &nbsp;
   <a href="https://ko-fi.com/neobotxyz">
     <img src="https://img.shields.io/badge/Support%20on%20Ko--fi-ff5e5b?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Ko-fi"/>
   </a>
