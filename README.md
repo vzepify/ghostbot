@@ -1,11 +1,3 @@
-<div style="text-align: center;">
-  <img
-    src="https://raw.githubusercontent.com/vzepify/ghostbot/main/public/favicon.png"
-    alt="NeoBot Logo"
-    width="80"
-  />
-</div>
-
 <h1 align="center">About</h1>
 
 <p align="center">
@@ -15,10 +7,6 @@
 <p align="center">
   <a href="https://neobotxyz.up.railway.app">
     <img src="https://img.shields.io/badge/Add%20to%20your%20channel-9f6ef5?style=for-the-badge&logo=twitch&logoColor=white" alt="Add to Channel"/>
-  </a>
-  &nbsp;
-  <a href="https://github.com/vzepify/ghostbot/blob/main/FAQ.md">
-    <img src="https://img.shields.io/badge/FAQ-141416?style=for-the-badge&logo=github&logoColor=white" alt="FAQ"/>
   </a>
   &nbsp;
   <a href="https://ko-fi.com/neobotxyz">
