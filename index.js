@@ -665,6 +665,12 @@ app.get("/dashboard", (req, res) => { if (!req.session.userId) return res.redire
 app.get("/timers", (req, res) => { if (!req.session.userId) return res.redirect("/"); res.sendFile(path.join(__dirname, "public", "timers.html")); });
 app.get("/moderation", (req, res) => { if (!req.session.userId) return res.redirect("/"); res.sendFile(path.join(__dirname, "public", "moderation.html")); });
 
+// Public docs pages — no auth required
+app.get("/docs", (req, res) => res.sendFile(path.join(__dirname, "public", "docs.html")));
+app.get("/faq", (req, res) => res.sendFile(path.join(__dirname, "public", "docs.html")));
+app.get("/README.md", (req, res) => res.sendFile(path.join(__dirname, "README.md")));
+app.get("/FAQ.md", (req, res) => res.sendFile(path.join(__dirname, "FAQ.md")));
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🌐 Server running on port ${PORT}`));
 startBot().catch(console.error);
