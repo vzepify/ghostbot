@@ -43,6 +43,13 @@
 
 ## Changelog
 
+### v0.0.4
+- added faq buttons on every page which takes u to readme and faq on website.
+- more (soon)
+
+
+
+
 ### v0.0.3
 - Added **Banned Words** moderation module
 - Mods and streamers can add/edit banned words from the dashboard
