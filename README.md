@@ -2,7 +2,7 @@
   <img src="https://github.com/vzepify/ghostbot/blob/main/public/favicon.png" alt="NeoBot Logo" width="120"/>
 </p>
 
-<h1 align="center">NeoBot</h1>
+<h1 align="center">About</h1>
 
 <p align="center">
   A Twitch bot with a web dashboard — manage commands, timers, and moderation from your browser.
